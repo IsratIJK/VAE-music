@@ -22,6 +22,8 @@ compute_metrics: Compute all 6 metrics for a given label assignment.
 cluster_purity: Compute cluster purity score.
 run_clustering: Run all three algorithms on a latent space Z.
 elbow_analysis: Inertia + silhouette + CH over a range of K values.
+estimate_mi: Estimate mutual information between a latent dim and discrete labels.
+compute_mig: Compute MIG (Mutual Information Gap) disentanglement score.
 """
 
 from __future__ import annotations
@@ -70,11 +72,8 @@ def cluster_purity(y_true: np.ndarray, cluster_labels: np.ndarray) -> float:
     return total / len(yt)
 
 
-def compute_metrics(
-    Z: np.ndarray,
-    y_true: np.ndarray,
-    cluster_labels: np.ndarray,
-) -> dict[str, float]:
+def compute_metrics(Z: np.ndarray, y_true: np.ndarray, 
+                    cluster_labels: np.ndarray) -> dict[str, float]:
     """Compute all 6 clustering quality metrics.
 
     Noise points (label = -1 from DBSCAN) are excluded before computing
@@ -107,18 +106,13 @@ def compute_metrics(
         ch = float(calinski_harabasz_score(Zm, cm)),
         nmi = float(normalized_mutual_info_score(ym, cm, average_method="arithmetic")),
         ari = float(adjusted_rand_score(ym, cm)),
-        purity = cluster_purity(y_true, cluster_labels),
+        purity = cluster_purity(y_true, cluster_labels)
     )
 
 
-def run_clustering(
-    Z: np.ndarray,
-    y_true: np.ndarray,
-    n_class: int,
-    tag: str = "",
-    kmeans_ninit: int = 20,
-    verbose: bool = True,
-) -> dict[str, dict]:
+def run_clustering(Z: np.ndarray, y_true: np.ndarray, n_class: int, 
+                   tag: str = "", kmeans_ninit: int = 20, verbose: bool = True) \
+                      -> dict[str, dict]:
     """Run KMeans, Agglomerative, and DBSCAN on latent matrix Z.
 
     DBSCAN is auto-tuned via the 90th-percentile of the 5-NN distances
@@ -191,11 +185,86 @@ def run_clustering(
     return results
 
 
-def elbow_analysis(
-    Z: np.ndarray,
-    k_range: range = range(2, 16),
-    kmeans_ninit: int = 10,
-) -> dict[str, list]:
+def estimate_mi(z_vals: np.ndarray, labels: np.ndarray, n_bins: int = 20) -> float:
+    """Estimate mutual information I(z_j; v) using histogram binning.
+
+    Parameters
+    ----------
+    z_vals: (N,) continuous latent dimension values.
+    labels: (N,) discrete factor labels (e.g. integer genre ids).
+    n_bins: Number of histogram bins for discretising z.
+
+    Returns
+    -------
+    Non-negative MI estimate (float).
+    """
+    z_min, z_max = z_vals.min(), z_vals.max()
+    if z_max - z_min < 1e-8:
+        return 0.0
+
+    bins = np.linspace(z_min - 1e-6, z_max + 1e-6, n_bins + 1)
+    z_bin = np.clip(np.digitize(z_vals, bins) - 1, 0, n_bins - 1)
+
+    classes = np.unique(labels)
+    N = len(z_vals)
+    p_z = np.bincount(z_bin, minlength=n_bins) / N
+    mi = 0.0
+
+    for c in classes:
+        mask = labels == c
+        p_c = mask.sum() / N
+        if p_c == 0:
+            continue
+        p_zc = np.bincount(z_bin[mask], minlength=n_bins) / mask.sum()
+        for b in range(n_bins):
+            if p_zc[b] > 0 and p_z[b] > 0:
+                mi += p_c * p_zc[b] * np.log(p_zc[b] / (p_z[b] + 1e-10) + 1e-10)
+
+    return float(max(mi, 0.0))
+
+
+def compute_mig(Z: np.ndarray, y_true: np.ndarray, 
+                n_bins: int = 20) -> tuple[float, np.ndarray]:
+    """Compute Mutual Information Gap (MIG) disentanglement score.
+
+    MIG = (top_MI - second_MI) / H(v)
+
+    A perfectly disentangled model has MIG = 1.0 (one latent dimension
+    exclusively encodes each generative factor). An entangled model has
+    MIG ≈ 0.0.
+
+    Reference: Chen et al. "Isolating Sources of Disentanglement" (NeurIPS 2018).
+
+    Parameters
+    ----------
+    Z: (N, z_dim) latent codes.
+    y_true: (N,) integer genre labels.
+    n_bins: Histogram bins for MI estimation.
+
+    Returns
+    -------
+    (mig_score, mi_per_dim)
+      mig_score: MIG in [0, 1].
+      mi_per_dim: (z_dim,) MI of each latent dimension with y_true.
+    """
+    _, z_dim = Z.shape
+    mi_scores = np.array([estimate_mi(Z[:, j], y_true, n_bins) for j in range(z_dim)])
+    sorted_mi = np.sort(mi_scores)[::-1]
+
+    if len(sorted_mi) < 2 or sorted_mi[0] < 1e-8:
+        return 0.0, mi_scores
+
+    # Entropy of the label distribution
+    counts = np.bincount(y_true)
+    probs = counts[counts > 0] / len(y_true)
+    H_v = float(-np.sum(probs * np.log(probs + 1e-10)))
+
+    mig = (sorted_mi[0] - sorted_mi[1]) / (H_v + 1e-8)
+    return float(np.clip(mig, 0.0, 1.0)), mi_scores
+
+
+def elbow_analysis(Z: np.ndarray, k_range: range = range(2, 16), 
+                   kmeans_ninit: int = 10) -> dict[str, list]:
     """Compute inertia, silhouette, and CH index over a range of K.
 
     Used to select the optimal number of clusters visually (elbow method).
