@@ -89,9 +89,11 @@ VAE-music/
 
 ```bash
 # Create and activate virtual environment
-python -m venv .venv
+python -m venv .venv             # Windows
+python3 -m venv .venv            # Linux/Mac
+
 source .venv/bin/activate        # Linux/Mac
-# .venv\Scripts\activate         # Windows
+.venv\Scripts\activate           # Windows
 
 # Install dependencies
 pip install -r requirements.txt
