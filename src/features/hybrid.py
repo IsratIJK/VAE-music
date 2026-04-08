@@ -28,8 +28,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder, normalize
 
 
-def make_tfidf_embedding(y_labels: np.ndarray, genre_vocab: dict[str, str],
-    n_components: int = 32, n_words: int = 40) -> np.ndarray:
+def make_tfidf_embedding(y_labels: np.ndarray, genre_vocab: dict[str, str], 
+                         n_components: int = 32, n_words: int = 40) -> np.ndarray:
     """Generate a TF-IDF -> PCA lyrics embedding for each sample.
 
     For each sample a synthetic document is created by randomly sampling
@@ -93,8 +93,8 @@ def make_genre_onehot(y_labels: np.ndarray, le: LabelEncoder) -> np.ndarray:
     return np.eye(len(le.classes_), dtype=np.float32)[indices]
 
 
-def make_hybrid(X_audio: np.ndarray, y_labels: np.ndarray, genre_vocab: dict[str, str],
-    lyric_dim: int = 32) -> np.ndarray:
+def make_hybrid(X_audio: np.ndarray, y_labels: np.ndarray, genre_vocab: dict[str, str], 
+                lyric_dim: int = 32) -> np.ndarray:
     """Fuse audio and lyrics embeddings (L2-normalised concatenation).
 
     Both modalities are L2-normalised before concatenation so that neither
@@ -118,7 +118,7 @@ def make_hybrid(X_audio: np.ndarray, y_labels: np.ndarray, genre_vocab: dict[str
 
 
 def make_multimodal(X_audio: np.ndarray, y_labels: np.ndarray, le: LabelEncoder,
-    genre_vocab: dict[str, str], lyric_dim: int = 32) -> np.ndarray:
+                    genre_vocab: dict[str, str], lyric_dim: int = 32) -> np.ndarray:
     """Fuse audio + lyrics + genre one-hot for multi-modal VAE input.
 
     Concatenation: L2_norm(audio) ‖ L2_norm(lyrics) ‖ one_hot(genre)
