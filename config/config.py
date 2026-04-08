@@ -84,6 +84,23 @@ MODEL_COLORS: dict[str, str] = {
 LANG_COLORS: dict[str, str] = {"English": "#1565C0", "Bangla": "#FF5722"}
 LANG_MARKERS: dict[str, str] = {"English": "o", "Bangla": "^"}
 
+# -- Advanced extension hyperparameters ----------------------------------------
+# Extension 2: β-sweep values for sensitivity analysis
+BETA_VALUES: list[float] = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0]
+# Number of epochs for β-sweep (reduced for speed)
+SWEEP_EPOCHS: int = 60
+
+# Extension 4: SLERP interpolation steps
+N_INTERP: int = 12
+
+# Extension A: Contrastive VAE
+LAMBDA_VALUES: list[float] = [0.1, 0.5, 1.0]   # InfoNCE weight sweep
+CONTRASTIVE_TEMPERATURE: float = 0.07   # InfoNCE temperature τ
+
+# Extension B: DANN-VAE
+DANN_COMMON_DIM: int = 32  # PCA-aligned feature dimension across domains
+DANN_DOMAIN_WEIGHT: float = 0.5  # λ_d weight on domain adversarial loss
+
 # -- Reproducibility seeds ------------------------------------------------------
 NUMPY_SEED = 42
 TORCH_SEED = 42

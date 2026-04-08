@@ -220,12 +220,8 @@ data/fma/
 data/lmd/
 data/gtzan/
 data/audio/bangla/
-results/easy/
-results/medium/
-results/hard/
 notebooks/notebooks/
 
 # Keep .gitkeep placeholder files
 !data/audio/.gitkeep
 !data/lyrics/.gitkeep
-!results/.gitkeep
