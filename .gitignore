@@ -225,3 +225,6 @@ notebooks/notebooks/
 # Keep .gitkeep placeholder files
 !data/audio/.gitkeep
 !data/lyrics/.gitkeep
+
+# MacOS specific files
+.DS_Store
