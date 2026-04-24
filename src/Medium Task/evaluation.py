@@ -2,17 +2,6 @@
 evaluation.py
 -------------
 All evaluation, analysis, and reporting functions.
-
-Step 21 → Metrics Heatmap Dashboard (6 Metrics)
-Step 22 → Best Metrics Bar Charts
-Step 24 → VAE vs PCA Baseline — Δ Analysis
-Step 25 → Beta-VAE Disentanglement Analysis
-Step 26 → Beta-VAE Latent Traversal
-Step 27 → Reconstruction Examples
-Step 28 → Quantitative Analysis & Interpretation
-Step 28b→ Head-to-Head Paradigm Comparison
-Step 29 → Final Summary Report
-Step 30 → Download All Results
 """
 
 import os
@@ -37,9 +26,7 @@ warnings.filterwarnings('ignore')
 ALGOS = ['KMeans', 'Agglomerative_Ward', 'Agglomerative_Complete', 'DBSCAN']
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 21 — Metrics Heatmap Dashboard (6 Metrics)
-# ════════════════════════════════════════════════════════════════════════════
+# Metrics Heatmap Dashboard (6 Metrics)
 
 def build_metrics_df(all_results):
     """Build the full metrics DataFrame from all_results. Returns df_all."""
@@ -66,25 +53,25 @@ def build_metrics_df(all_results):
 def print_metrics_table(df_all, out_dir=OUTPUT_DIR):
     pd.set_option('display.max_rows', 200); pd.set_option('display.width', 200)
     print('=' * 110)
-    print('  FULL METRICS TABLE  |  Sil↑  DB↓  CH↑  ARI↑  NMI↑  Purity↑')
+    print('  FULL METRICS TABLE  |  Sil  DB  CH  ARI  NMI  Purity')
     print('=' * 110)
     print(df_all.to_string(index=False))
     df_all.to_csv(f'{out_dir}/full_metrics.csv', index=False)
-    print('\n✅ Saved: full_metrics.csv')
+    print('\nSaved: full_metrics.csv')
 
 
 def plot_metrics_heatmap(df_all, out_dir=OUTPUT_DIR):
     feat_order  = list(MODEL_LABELS.values())
     metrics_cfg = [
-        ('Silhouette',     '↑ higher', 'Blues'),
-        ('Davies-Bouldin', '↓ lower',  'Reds_r'),
-        ('Calinski-H',     '↑ higher', 'Greens'),
-        ('ARI',            '↑ higher', 'Purples'),
-        ('NMI',            '↑ higher', 'Oranges'),
-        ('Purity',         '↑ higher', 'YlOrBr'),
+        ('Silhouette',     'higher is better', 'Blues'),
+        ('Davies-Bouldin', 'lower is better',  'Reds_r'),
+        ('Calinski-H',     'higher is better', 'Greens'),
+        ('ARI',            'higher is better', 'Purples'),
+        ('NMI',            'higher is better', 'Oranges'),
+        ('Purity',         'higher is better', 'YlOrBr'),
     ]
     fig, axes = plt.subplots(2, 3, figsize=(28, 16), squeeze=False)
-    fig.suptitle('Clustering Quality Heatmap — All 6 Metrics\nRows=Dataset+Algorithm | Cols=Feature Space',
+    fig.suptitle('Clustering Quality Heatmap - All 6 Metrics\nRows=Dataset+Algorithm | Cols=Feature Space',
                  fontsize=14, fontweight='bold')
     for ax, (metric, note, cmap) in zip(axes.flat, metrics_cfg):
         if metric not in df_all.columns: ax.set_visible(False); continue
@@ -98,12 +85,10 @@ def plot_metrics_heatmap(df_all, out_dir=OUTPUT_DIR):
         ax.tick_params(axis='x', rotation=20, labelsize=8)
     plt.tight_layout()
     plt.savefig(f'{out_dir}/metrics_heatmap.png', dpi=150, bbox_inches='tight')
-    plt.show(); print('✅ Saved: metrics_heatmap.png')
+    plt.show(); print('Saved: metrics_heatmap.png')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 22 — Best Metrics Bar Charts
-# ════════════════════════════════════════════════════════════════════════════
+# Best Metrics Bar Charts
 
 def plot_best_metrics_bar(all_results, out_dir=OUTPUT_DIR):
     feat_cols = list(MODEL_LABELS.values())
@@ -129,10 +114,10 @@ def plot_best_metrics_bar(all_results, out_dir=OUTPUT_DIR):
     fig, axes = plt.subplots(1, 4, figsize=(32, 7))
     fig.suptitle('Best Score per Feature Space (K-Means & Agglom-Ward)', fontsize=13, fontweight='bold')
     for ax, (metric, ylabel) in zip(axes, [
-        ('Best Sil',    'Silhouette (↑)'),
-        ('Best NMI',    'NMI (↑)'),
-        ('Best ARI',    'ARI (↑)'),
-        ('Best Purity', 'Purity (↑)'),
+        ('Best Sil',    'Silhouette (higher is better)'),
+        ('Best NMI',    'NMI (higher is better)'),
+        ('Best ARI',    'ARI (higher is better)'),
+        ('Best Purity', 'Purity (higher is better)'),
     ]):
         for fi, feat in enumerate(feat_cols):
             subset = df_sum[df_sum.Features == feat]
@@ -151,12 +136,10 @@ def plot_best_metrics_bar(all_results, out_dir=OUTPUT_DIR):
         ax.legend(fontsize=7, ncol=2); ax.grid(axis='y', alpha=0.3)
     plt.tight_layout()
     plt.savefig(f'{out_dir}/best_metrics_bar.png', dpi=150, bbox_inches='tight')
-    plt.show(); print('✅ Saved: best_metrics_bar.png')
+    plt.show(); print('Saved: best_metrics_bar.png')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 24 — VAE vs PCA Baseline — Δ Analysis
-# ════════════════════════════════════════════════════════════════════════════
+# VAE vs PCA Baseline
 
 def plot_vae_vs_baseline(all_results, out_dir=OUTPUT_DIR):
     vae_keys_delta = [(k, v) for k, v in MODEL_LABELS.items() if k not in ('pca', 'raw')]
@@ -166,12 +149,12 @@ def plot_vae_vs_baseline(all_results, out_dir=OUTPUT_DIR):
     w        = 0.07
 
     fig, axes = plt.subplots(1, 2, figsize=(26, 6), squeeze=False)
-    fig.suptitle('VAE vs PCA Baseline — Δ Silhouette & Δ NMI (K-Means)\n'
+    fig.suptitle('VAE vs PCA Baseline - delta Silhouette & delta NMI (K-Means)\n'
                  'Positive = better than PCA | Negative = worse',
                  fontsize=13, fontweight='bold')
 
     for ax, metric in zip(axes[0], ['sil', 'nmi']):
-        ylabel = f'Δ {metric.upper()} (model − PCA)'
+        ylabel = f'delta {metric.upper()} (model - PCA)'
         for fi, (zkey, zlabel) in enumerate(vae_keys_delta):
             deltas = []
             for _, res in valid:
@@ -194,12 +177,10 @@ def plot_vae_vs_baseline(all_results, out_dir=OUTPUT_DIR):
         ax.legend(fontsize=7, ncol=2); ax.grid(axis='y', alpha=0.3)
     plt.tight_layout()
     plt.savefig(f'{out_dir}/vae_vs_baseline.png', dpi=150, bbox_inches='tight')
-    plt.show(); print('✅ Saved: vae_vs_baseline.png')
+    plt.show(); print('Saved: vae_vs_baseline.png')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 25 — Beta-VAE Disentanglement Analysis
-# ════════════════════════════════════════════════════════════════════════════
+# Beta-VAE Disentanglement Analysis
 
 def plot_disentanglement(all_results, out_dir=OUTPUT_DIR):
     for key, res in all_results.items():
@@ -215,14 +196,14 @@ def plot_disentanglement(all_results, out_dir=OUTPUT_DIR):
 
         models_to_show = [
             (Z_mlp,  'MLP-VAE (baseline)'),
-            (Z_beta, f'Beta-VAE (β={best_beta:.1f}, best)'),
+            (Z_beta, f'Beta-VAE (beta={best_beta:.1f}, best)'),
             (Z_cvae, 'CVAE (zero-condition)'),
         ]
 
         fig, axes = plt.subplots(len(models_to_show), n_show,
                                  figsize=(n_show * 3.5, 4 * len(models_to_show)),
                                  squeeze=False)
-        fig.suptitle(f'Latent Dimension Distributions — Disentanglement Analysis\n{res["name"]}',
+        fig.suptitle(f'Latent Dimension Distributions - Disentanglement Analysis\n{res["name"]}',
                      fontsize=13, fontweight='bold')
 
         for row, (Z, title) in enumerate(models_to_show):
@@ -243,12 +224,10 @@ def plot_disentanglement(all_results, out_dir=OUTPUT_DIR):
         fname = f'{out_dir}/disentangle_{key.lower()}.png'
         plt.savefig(fname, dpi=150, bbox_inches='tight')
         plt.show()
-        print(f'✅ Saved: {fname}')
+        print(f'Saved: {fname}')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 26 — Beta-VAE Latent Traversal
-# ════════════════════════════════════════════════════════════════════════════
+# Beta-VAE Latent Traversal
 
 def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
     _traversal_key = next(
@@ -257,7 +236,7 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
                                    for m in ['mlp', 'beta', 'cvae'])), None)
 
     if _traversal_key is None:
-        print('No valid model found — skipping latent traversal.')
+        print('No valid model found -- skipping latent traversal.')
         return
 
     res     = all_results[_traversal_key]
@@ -267,14 +246,14 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
 
     model_configs = {
         'mlp':  'MLP-VAE (baseline)',
-        'beta': f'Beta-VAE (β={res.get("best_beta", "?"):.1f}, best)',
+        'beta': f'Beta-VAE (beta={res.get("best_beta", "?"):.1f}, best)',
         'cvae': 'CVAE (zero-condition)',
     }
 
     for model_key, model_label in model_configs.items():
         model_obj = res['models'].get(model_key)
         if model_obj is None:
-            print(f'⚠️  {model_label} not found — skipping.')
+            print(f'  {model_label} not found -- skipping.')
             continue
 
         model_obj = model_obj.eval()
@@ -307,7 +286,7 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
                 if ti == 0: ax.set_ylabel(f'dim {di}', fontsize=7)
                 if di == 0: ax.set_title(f'z={val:+.1f}', fontsize=7)
 
-        plt.suptitle(f'{model_label} Latent Traversal — {_traversal_key}',
+        plt.suptitle(f'{model_label} Latent Traversal - {_traversal_key}',
                      fontsize=12, fontweight='bold')
         plt.tight_layout()
 
@@ -315,12 +294,10 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
         save_path = f'{out_dir}/latent_traversal_{safe_key}.png'
         plt.savefig(save_path, dpi=120, bbox_inches='tight')
         plt.show()
-        print(f'✅ Saved: {save_path}  (dataset={_traversal_key}, model={model_label})')
+        print(f'Saved: {save_path}  (dataset={_traversal_key}, model={model_label})')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 27 — Reconstruction Examples
-# ════════════════════════════════════════════════════════════════════════════
+# Reconstruction Examples
 
 def plot_reconstruction_examples(all_results, out_dir=OUTPUT_DIR):
     rng = np.random.default_rng(SEED)
@@ -331,7 +308,7 @@ def plot_reconstruction_examples(all_results, out_dir=OUTPUT_DIR):
         n_show = 5
         idx    = rng.choice(len(X_sc), min(n_show, len(X_sc)), replace=False)
         fig, axes = plt.subplots(len(idx), 3, figsize=(18, len(idx) * 2.8), squeeze=False)
-        fig.suptitle(f'Reconstruction Examples — {res["name"]}', fontsize=13, fontweight='bold')
+        fig.suptitle(f'Reconstruction Examples - {res["name"]}', fontsize=13, fontweight='bold')
         for row, i in enumerate(idx):
             x_orig = torch.FloatTensor(X_sc[i:i+1]).to(DEVICE)
             genre  = res['y_labels'][i]
@@ -364,12 +341,10 @@ def plot_reconstruction_examples(all_results, out_dir=OUTPUT_DIR):
         plt.tight_layout()
         fname = f'{out_dir}/reconstruction_{key.lower()}.png'
         plt.savefig(fname, dpi=120, bbox_inches='tight')
-        plt.show(); print(f'✅ Saved: {fname}')
+        plt.show(); print(f'Saved: {fname}')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 28 — Quantitative Analysis & Interpretation
-# ════════════════════════════════════════════════════════════════════════════
+# Quantitative Analysis & Interpretation
 
 def print_quantitative_analysis(all_results):
     print('=' * 80)
@@ -386,35 +361,33 @@ def print_quantitative_analysis(all_results):
             m       = res['cl'][zkey]['KMeans']['metrics']
             vae_sil = m['sil']; vae_nmi = m['nmi']
             if np.isnan(vae_sil) or np.isnan(pca_sil):
-                print(f'  {ds_key:<12} | {zlab:<20} | Sil: NaN — skipped'); continue
+                print(f'  {ds_key:<12} | {zlab:<20} | Sil: NaN -- skipped'); continue
             d_sil = vae_sil - pca_sil; d_nmi = vae_nmi - pca_nmi
             pct   = d_sil / abs(pca_sil) * 100 if pca_sil != 0 else 0
-            v     = ('BETTER ✅' if d_sil > 0.005 else 'WORSE  ❌' if d_sil < -0.005 else 'SIMILAR ~')
+            v     = ('BETTER' if d_sil > 0.005 else 'WORSE' if d_sil < -0.005 else 'SIMILAR')
             print(f'  {ds_key:<12} | {zlab:<20} | '
                   f'Sil: {vae_sil:.4f} vs PCA {pca_sil:.4f} '
-                  f'Δ={d_sil:+.4f}({pct:+.1f}%)  NMI Δ={d_nmi:+.4f}  {v}')
+                  f'delta={d_sil:+.4f}({pct:+.1f}%)  NMI delta={d_nmi:+.4f}  {v}')
 
     print()
     print('INTERPRETATION')
-    print('─' * 70)
-    print('✅ BETTER  → Non-linear encoder captures manifold structure PCA cannot.')
+    print('-' * 70)
+    print('BETTER - Non-linear encoder captures manifold structure PCA cannot.')
     print('   When: high-dim data, complex genre boundaries, entangled audio features.')
     print()
-    print('❌ WORSE   → Small dataset (VAE overfits), very low-dim data, β too high.')
+    print('WORSE - Small dataset (VAE overfits), very low-dim data, beta too high.')
     print()
     print('Conv2D-VAE  : captures local time-frequency correlations (delta-stacked MFCC).')
-    print('HybridConvVAE: end-to-end Conv2D + lyric fusion — strongest when real lyrics available.')
-    print('Beta-VAE    : disentangled latent → individual dims align with audio factors.')
-    print('CVAE        : genre-aware latent — useful for conditional generation.')
+    print('HybridConvVAE: end-to-end Conv2D + lyric fusion -- strongest when real lyrics available.')
+    print('Beta-VAE    : disentangled latent -> individual dims align with audio factors.')
+    print('CVAE        : genre-aware latent -- useful for conditional generation.')
     print('MultiModalVAE: joint audio+lyric encoder, best when lyrics are informative.')
     print()
     print('NMI: symmetric, corrects for cluster size. ARI: corrects for random labelling.')
-    print('Purity: fraction of samples in majority-genre clusters — easy to interpret.')
+    print('Purity: fraction of samples in majority-genre clusters -- easy to interpret.')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 28b — Head-to-Head Paradigm Comparison
-# ════════════════════════════════════════════════════════════════════════════
+# Head-to-Head Paradigm Comparison
 
 METRICS_INFO = [
     ('sil',    'Silhouette',     True),
@@ -468,7 +441,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     metric_col_order = [METRIC_LABELS_H2H[mk] for mk, _, _ in METRICS_INFO]
     higher_map = {METRIC_LABELS_H2H[mk]: hb for mk, _, hb in METRICS_INFO}
 
-    # ── collect results ────────────────────────────────────────────────────────
+    # collect results
     comparison_rows = []
     vae_best_info   = {}
 
@@ -503,7 +476,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     for ds_key, (bk, bl) in vae_best_info.items():
         print(f'    {ds_key:<12} -> {bl}')
 
-    # ── bar chart ──────────────────────────────────────────────────────────────
+    # bar chart
     datasets  = [k for k, v in all_results.items() if v is not None]
     n_ds      = len(datasets)
     n_para    = len(PARADIGMS)
@@ -543,9 +516,9 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     plt.tight_layout()
     plt.savefig(f'{out_dir}/paradigm_comparison_bar.png', dpi=150, bbox_inches='tight')
     plt.show()
-    print('✅ Saved: paradigm_comparison_bar.png')
+    print('Saved: paradigm_comparison_bar.png')
 
-    # ── ranked summary table ───────────────────────────────────────────────────
+    # ranked summary table
     print()
     print('=' * 90)
     print('  RANKED SUMMARY (rank 1 = best per metric per dataset)')
@@ -580,7 +553,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
         winner = row.idxmin()
         print(f'    {ds_key:<12} -> {winner}  (avg rank {row.min():.2f})')
 
-    # ── radar chart ───────────────────────────────────────────────────────────
+    # radar chart
     try:
         radar_metric_cols = [METRIC_LABELS_H2H[mk]
                              for mk in ['sil', 'ari', 'nmi', 'purity', 'ch', 'db']]
@@ -590,7 +563,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
 
         fig_r, ax_r = plt.subplots(1, 1, figsize=(8, 8), subplot_kw=dict(polar=True))
         fig_r.suptitle(
-            'Paradigm Radar -- Mean Score Across All Datasets\n'
+            'Paradigm Radar - Mean Score Across All Datasets\n'
             '(all metrics normalised to [0,1]; Davies-Bouldin inverted)',
             fontsize=12, fontweight='bold'
         )
@@ -625,13 +598,13 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
         plt.tight_layout()
         plt.savefig(f'{out_dir}/paradigm_radar.png', dpi=150, bbox_inches='tight')
         plt.show()
-        print('✅ Saved: paradigm_radar.png')
+        print('Saved: paradigm_radar.png')
     except Exception as e_radar:
         print(f'  [Radar chart skipped: {e_radar}]')
 
-    # ── export CSV ────────────────────────────────────────────────────────────
+    # export CSV
     df_cmp.to_csv(f'{out_dir}/paradigm_comparison.csv', index=False)
-    print('✅ Saved: paradigm_comparison.csv')
+    print('Saved: paradigm_comparison.csv')
 
     print()
     print('INTERPRETATION')
@@ -643,16 +616,14 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     print('Green  Direct Spect  : K-Means on raw 65-dim features.')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 29 — Final Summary Report
-# ════════════════════════════════════════════════════════════════════════════
+# Final Summary Report
 
 def print_final_report(all_results):
     SEP = '=' * 80
     print(SEP)
-    print('  ADVANCED MULTI-MODAL VAE CLUSTERING — FINAL REPORT  (Combined Task)')
-    print('  3 Datasets: GTZAN · BanglaGITI · BMGCD')
-    print('  11 Feature Spaces × 4 Algorithms × 6 Metrics | No Synthetic Audio Data')
+    print('  ADVANCED MULTI-MODAL VAE CLUSTERING - FINAL REPORT  (Combined Task)')
+    print('  3 Datasets: GTZAN, BanglaGITI, BMGCD')
+    print('  11 Feature Spaces x 4 Algorithms x 6 Metrics | No Synthetic Audio Data')
     print(SEP)
 
     def _f(v):
@@ -661,7 +632,7 @@ def print_final_report(all_results):
     for ds_key, res in all_results.items():
         if res is None: continue
         print(f'\n  {res["name"]}  |  {len(res["y_labels"])} samples  {res["n_class"]} genres')
-        print(f'  {"Features":<20} {"Algorithm":<24} {"Sil":>7} {"DB(↓)":>7} {"CH":>9} {"ARI":>7} {"NMI":>7} {"Purity":>7}')
+        print(f'  {"Features":<20} {"Algorithm":<24} {"Sil":>7} {"DB(dn)":>7} {"CH":>9} {"ARI":>7} {"NMI":>7} {"Purity":>7}')
         print('  ' + '-' * 87)
         for zkey, zlab in MODEL_LABELS.items():
             if zkey not in res['cl']: continue
@@ -686,25 +657,23 @@ def print_final_report(all_results):
     print()
     print('  Note: GTZAN lyrics are 100% genre-seed based (numeric filenames = no title).')
     print('  BanglaGITI/BMGCD: real lyrics scraped where available (gaanesuno.com).')
-    print('  MultiModalVAE uses joint audio+lyric encoder — strongest with real lyrics.')
+    print('  MultiModalVAE uses joint audio+lyric encoder -- strongest with real lyrics.')
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 30 — Download All Results
-# ════════════════════════════════════════════════════════════════════════════
+# Download All Results
 
 def download_results(out_dir=OUTPUT_DIR):
     shutil.make_archive('/content/vae_combined_results', 'zip', out_dir)
     try:
         from google.colab import files
         files.download('/content/vae_combined_results.zip')
-        print('✅ Download started!')
+        print('Download started!')
     except ImportError:
-        print(f'✅ Zip saved → /content/vae_combined_results.zip')
-        print('   (google.colab not available — running outside Colab)')
+        print('Zip saved: /content/vae_combined_results.zip')
+        print('   (google.colab not available -- running outside Colab)')
 
 
-print('✅ evaluation.py loaded')
+print('evaluation.py loaded')
 print('   Functions: build_metrics_df | plot_metrics_heatmap | plot_best_metrics_bar')
 print('   plot_vae_vs_baseline | plot_disentanglement | plot_latent_traversal')
 print('   plot_reconstruction_examples | paradigm_comparison | print_final_report | download_results')
