@@ -2,40 +2,174 @@
 
 > GitHub: https://github.com/IsratIJK/VAE-music
 
-An unsupervised learning pipeline that uses Variational Autoencoders (VAEs) to extract latent representations from music audio features and performs clustering to discover genre structure across a hybrid English + Bangla dataset.
 
-## Project Overview
 
-This project implements a full pipeline:
-- Extract latent representations from audio features using multiple VAE variants
-- Cluster the latent space with K-Means, Agglomerative, and DBSCAN
-- Compare against PCA + K-Means and Spectral baselines using six evaluation metrics
-- Analyse disentanglement, multi-modal fusion, cross-language structure, and domain adaptation
+## Introduction
+
+This repository presents a comprehensive study on **Variational Autoencoders (VAEs)** for unsupervised representation learning and clustering of audio data. The project investigates how different VAE architectures and latent space enhancement techniques affect clustering performance across datasets of varying scale and complexity.
+
+We systematically explore multiple VAE variants and evaluate their ability to learn meaningful latent representations, which are then used for clustering and analysis.
+
+
+
+## VAE Variants
+
+The following Variational Autoencoder architectures are implemented and evaluated:
+
+- MLP-VAE  
+- Convolutional VAE (Conv-VAE)  
+- Hybrid VAE (MLP + CNN)  
+- **β-VAE** (strong baseline)  
+- Conditional VAE (CVAE)  
+- Multimodal VAE (MM-VAE)  
+
+
+
+## Clustering Methods
+
+Clustering is performed on learned latent representations using multiple algorithms:
+
+- **K-Means**  
+- **DBSCAN (Density-Based Clustering)**  
+- **Agglomerative Clustering**  
+
+These methods are used to evaluate how different latent structures behave under varying assumptions of density, hierarchy, and cluster geometry.
+
+
+
+## Advanced Techniques
+
+To further enhance latent space quality and structure, the following techniques are explored:
+
+ **Diffusion-based latent refinement (DDIM)**  
+  Improves latent smoothness through iterative denoising in latent space.
+
+ **Ensemble latent fusion**  
+  Integrates latent representations from multiple models to form a more robust unified embedding.
+
+ **Spectral graph refinement**  
+  Uses graph-based spectral structure to improve latent separability and clustering consistency.
+
+
+
+## Evaluation Metrics
+
+Model performance is evaluated using standard clustering metrics:
+
+- Silhouette Score  
+- Normalized Mutual Information (NMI)  
+- Adjusted Rand Index (ARI)  
+- Purity  
+- Davies–Bouldin Index  
+
+
+
+## Key Findings
+
+- Representation quality is more important than model complexity, especially in low-data regimes.  
+- Simple baselines (e.g., PCA in small datasets) can sometimes outperform deep generative models.  
+- **β-VAE consistently provides the most stable baseline performance.**  
+- Diffusion-based refinement improves latent smoothness but may degrade clustering separability.  
+- Spectral and ensemble methods improve structure but increase computational complexity.  
+- DBSCAN and Agglomerative clustering capture different structural properties compared to K-Means.
+
+
+
+## Objective
+
+This repository provides a **modular and extensible framework** for:
+
+- Representation learning using VAEs  
+- Latent space analysis and visualization  
+- Multi-algorithm clustering evaluation  
+- Advanced latent refinement techniques  
+
+It aims to support reproducible research in **audio representation learning and unsupervised clustering**.
+
+
+
 
 ## Repository Structure
 
 ## Tasks
 
-### Easy Task
-- MLP-VAE on FMA Small (8 000 English tracks) + 100 simulated Bangla tracks
-- K-Means clustering on 32-dim latent space
-- Baseline: PCA + K-Means
-- Metrics: Silhouette Score, Calinski-Harabasz Index
-- Visualisations: t-SNE, UMAP, elbow method, cluster composition
+## Project Tasks
 
-### Medium Task
-- Three VAE architectures: MLP-VAE, Conv1D-VAE, Hybrid-VAE (audio + TF-IDF lyrics)
-- Three datasets: FMA, LMD (MIDI), GTZAN — each augmented with real Bangla audio via yt-dlp
-- Three clustering algorithms: K-Means, Agglomerative, DBSCAN
-- Six metrics: Silhouette, Davies-Bouldin, Calinski-Harabasz, NMI, ARI, Cluster Purity
+This project is divided into three progressive levels of difficulty: Easy, Medium, and Hard. Each stage builds upon the previous one to systematically develop and evaluate VAE-based representation learning for music data.
 
-### Hard Task
-Core pipeline:
-- Six VAE model variants: MLP-VAE, Beta-VAE (β=4), CVAE, Conv1D-VAE, Autoencoder, Multi-Modal VAE
-- Two non-learned baselines: PCA + K-Means, Spectral embedding + K-Means
-- Three datasets (FMA, LMD, GTZAN) each augmented with real Bangla audio
-- Six evaluation metrics including Cluster Purity
-- Full visualisation suite: t-SNE/UMAP per model, reconstruction examples, heatmaps, training curves
+---
+
+## 🟢 Easy Task
+
+- Implement a basic **Variational Autoencoder (VAE)** for feature extraction from music data.  
+- Use a small hybrid language music dataset (English + Bangla songs).  
+- Perform clustering using **K-Means** on latent features.  
+- Visualize clusters using **t-SNE** or **UMAP**.  
+
+### Baseline Comparison
+- Compare VAE-based features with:
+  - PCA + K-Means baseline  
+
+### Evaluation Metrics
+- Silhouette Score  
+- Calinski–Harabasz Index  
+
+
+
+## 🟡 Medium Task
+
+- Enhance the VAE with a **convolutional architecture** for processing spectrograms or MFCC features.  
+- Introduce **hybrid feature representation** combining:
+  - Audio features  
+  - Lyrics embeddings  
+
+### Clustering Methods
+- K-Means  
+- Agglomerative Clustering  
+- DBSCAN  
+
+### Evaluation Metrics
+- Silhouette Score  
+- Davies–Bouldin Index  
+- Adjusted Rand Index (ARI) *(if partial labels are available)*  
+
+### Analysis Goal
+- Compare clustering quality across methods  
+- Analyze why VAE-based representations perform better or worse than baseline approaches  
+
+
+
+## 🔴 Hard Task
+
+- Implement advanced VAE variants:
+  - **Conditional VAE (CVAE)**  
+  - **β-VAE (disentangled representation learning)**  
+
+- Perform **multi-modal clustering** using:
+  - Audio features  
+  - Lyrics embeddings  
+  - Genre information  
+
+### Evaluation Metrics
+- Silhouette Score  
+- Normalized Mutual Information (NMI)  
+- Adjusted Rand Index (ARI)  
+- Cluster Purity  
+
+### Visualization Requirements
+- Latent space visualization (t-SNE / UMAP)  
+- Cluster distribution across:
+  - Languages  
+  - Genres  
+- Reconstruction examples from latent space  
+
+### Comparative Analysis
+Compare VAE-based approaches with:
+
+- PCA + K-Means  
+- Autoencoder + K-Means  
+- Direct spectral feature clustering  
+
 
 
 
@@ -45,12 +179,24 @@ Core pipeline:
 
 ## Datasets
 
-| Dataset | Tracks | Genres | Source |
-|---------|--------|--------|--------|
-| FMA Small | 8 000 | 8 | Pre-extracted librosa features (~342 MB) |
-| LMD | ~9 000 | 6 | MIDI files (clean_midi, ~57 MB) |
-| GTZAN | 1 000 | 10 | Pre-extracted CSV from GitHub |
-| Bangla | ~150 | 5 | Real YouTube audio via yt-dlp |
+The experiments in this project are conducted on multiple music datasets:
+
+- **GTZAN Dataset**  
+  A standard benchmark dataset for music genre classification and clustering tasks.
+
+- **BMGCD (Bangla Music Genre Classification Dataset)**  
+  A dataset specifically designed for Bangla music genre classification.
+
+- **BanglaGITI Dataset**  
+  A Bangla music dataset used for genre-based and linguistic variation analysis in music understanding tasks.
+
+- **YouTube-based Hybrid Dataset**  
+  A small-scale dataset containing both English and Bangla songs, used for multimodal and low-resource experiments.
+
+In addition, multimodal experiments utilize:
+- MFCC and spectrogram-based audio features  
+- Lyrics embeddings  
+- Genre and language metadata (where available)
 
 ## Installation
 
@@ -76,10 +222,10 @@ sudo apt-get install ffmpeg
 # macOS
 brew install ffmpeg
 ```
+<!-- 
+## Usage -->
 
-## Usage
-
-### Command-line scripts
+<!-- ### Command-line scripts
 
 ```bash
 # Easy Task (MLP-VAE, FMA + simulated Bangla)
@@ -100,15 +246,15 @@ python scripts/run_hard.py --no-extensions
 --latent-dim 64      # Change latent dimension
 ```
 
-All outputs are written to `results/easy/`, `results/medium/`, or `results/hard/` respectively.
+All outputs are written to `results/easy/`, `results/medium/`, or `results/hard/` respectively. -->
 
-### Jupyter notebooks
+<!-- ### Jupyter notebooks
 
 ```bash
 jupyter notebook notebooks/easy_task.ipynb
 jupyter notebook notebooks/medium_task.ipynb
 jupyter notebook notebooks/hard_task.ipynb
-```
+``` -->
 
 ## Model Architectures
 
@@ -132,17 +278,6 @@ Input = L2_norm(audio) ‖ L2_norm(TF-IDF lyrics PCA-32) ‖ genre one-hot. Full
 
 
 
-## Evaluation Metrics
-
-| Metric | Direction | Description |
-|--------|-----------|-------------|
-| Silhouette Score | ↑ | Mean inter/intra cluster distance ratio |
-| Davies-Bouldin | ↓ | Average cluster separation / compactness |
-| Calinski-Harabasz | ↑ | Between-cluster / within-cluster dispersion |
-| NMI | ↑ | Normalised mutual information with true labels |
-| ARI | ↑ | Adjusted Rand Index (corrects for chance) |
-| Cluster Purity | ↑ | Fraction of majority-class samples per cluster |
-
 
 ## Configuration
 
@@ -163,10 +298,7 @@ N_BANGLA_PER_GENRE = 30      # Bangla tracks per genre (yt-dlp)
 BETA_VALUES        = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0]   # β-sweep
 SWEEP_EPOCHS       = 60      # Reduced epochs for β-sweep
 N_INTERP           = 12      # SLERP interpolation steps
-LAMBDA_VALUES      = [0.1, 0.5, 1.0]                    # InfoNCE weight sweep
-CONTRASTIVE_TEMPERATURE = 0.07                           # InfoNCE temperature τ
-DANN_COMMON_DIM    = 32      # PCA-aligned dimension for DANN
-DANN_DOMAIN_WEIGHT = 0.5     # λ_d weight on domain adversarial loss
+
 ```
 
 ## Reproducibility
