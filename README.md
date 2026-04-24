@@ -198,7 +198,7 @@ In addition, multimodal experiments utilize:
 - Lyrics embeddings  
 - Genre and language metadata (where available)
 
-## Installation
+<!-- ## Installation
 
 ```bash
 # Create and activate virtual environment
@@ -220,7 +220,7 @@ For Bangla audio download you also need `ffmpeg`:
 # Ubuntu/Debian
 sudo apt-get install ffmpeg
 # macOS
-brew install ffmpeg
+brew install ffmpeg -->
 ```
 <!-- 
 ## Usage -->
@@ -256,7 +256,7 @@ jupyter notebook notebooks/medium_task.ipynb
 jupyter notebook notebooks/hard_task.ipynb
 ``` -->
 
-## Model Architectures
+## A Quick Information about the Models
 
 ### MLP-VAE
 - **Encoder**: Linear → BatchNorm → LeakyReLU stacked (256→128→64) → μ, log σ²

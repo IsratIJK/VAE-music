@@ -114,38 +114,37 @@ def print_final_report(df, X_scaled, le_genre, metrics,
     ch_vae = metrics['ch_vae']
     ch_pca = metrics['ch_pca']
 
-    print(f"""
-╔══════════════════════════════════════════════════════════════╗
-║   VAE Music Clustering — FINAL REPORT (Hybrid Dataset)      ║
-╠══════════════════════════════════════════════════════════════╣
-║  DATASET                                                     ║
-║  ├─ English  : {(df['language']=='English').sum():<6}  (GTZAN genres)                     ║
-║  ├─ Bangla   : {(df['language']=='Bangla').sum():<6}  (Baul/Folk/Rabindra/Pop/Classical) ║
-║  ├─ Total    : {len(df):<6}                                     ║
-║  ├─ Features : {X_scaled.shape[1]:<6}  (MFCC+Chroma+Spectral+ZCR+RMS)  ║
-║  └─ Genres   : {len(le_genre.classes_):<6}                                     ║
-╠══════════════════════════════════════════════════════════════╣
-║  VAE ARCHITECTURE                                            ║
-║  ├─ Input    : {INPUT_DIM:<6}                                     ║
-║  ├─ Hidden   : {str(HIDDEN_DIMS):<40}║
-║  ├─ Latent   : {LATENT_DIM:<6}                                     ║
-║  └─ Best loss: {best_loss:<6.4f}                                   ║
-╠══════════════════════════════════════════════════════════════╣
-║  EVALUATION (K = {K})                                         ║
-║                     VAE+KMeans    PCA+KMeans    Winner        ║
-║  Silhouette Score:  {sil_vae:>10.4f}  {sil_pca:>10.4f}    {'VAE' if sil_vae>sil_pca else 'PCA'}               ║
-║  Calinski-Harabasz: {ch_vae:>10.1f}  {ch_pca:>10.1f}    {'VAE' if ch_vae>ch_pca else 'PCA'}               ║
-╠══════════════════════════════════════════════════════════════╣
-║  OUTPUT FILES SAVED                                          ║
-║  /content/dataset_distribution.png                           ║
-║  /content/training_curves.png                                ║
-║  /content/elbow_method.png                                   ║
-║  /content/tsne_visualization.png                             ║
-║  /content/umap_visualization.png                             ║
-║  /content/metrics_comparison.png                             ║
-║  /content/cluster_composition.png                            ║
-╚══════════════════════════════════════════════════════════════╝
-""")
+    print('VAE Music Clustering — FINAL REPORT (Hybrid Dataset)')
+    print()
+    print('DATASET')
+    print(f'  English  : {(df["language"]=="English").sum()}  (GTZAN genres)')
+    print(f'  Bangla   : {(df["language"]=="Bangla").sum()}  (Baul/Folk/Rabindra/Pop/Classical)')
+    print(f'  Total    : {len(df)}')
+    print(f'  Features : {X_scaled.shape[1]}  (MFCC+Chroma+Spectral+ZCR+RMS)')
+    print(f'  Genres   : {len(le_genre.classes_)}')
+    print()
+    print('VAE ARCHITECTURE')
+    print(f'  Input    : {INPUT_DIM}')
+    print(f'  Hidden   : {HIDDEN_DIMS}')
+    print(f'  Latent   : {LATENT_DIM}')
+    print(f'  Best loss: {best_loss:.4f}')
+    print()
+    print(f'EVALUATION (K = {K})')
+    print(f'  {"":20s}  {"VAE+KMeans":>12}  {"PCA+KMeans":>12}  Winner')
+    print(f'  {"Silhouette Score":20s}  {sil_vae:>12.4f}  {sil_pca:>12.4f}  {"VAE" if sil_vae > sil_pca else "PCA"}')
+    print(f'  {"Calinski-Harabasz":20s}  {ch_vae:>12.1f}  {ch_pca:>12.1f}  {"VAE" if ch_vae > ch_pca else "PCA"}')
+    print()
+    print('OUTPUT FILES SAVED')
+    for fname in [
+        'dataset_distribution.png',
+        'training_curves.png',
+        'elbow_method.png',
+        'tsne_visualization.png',
+        'umap_visualization.png',
+        'metrics_comparison.png',
+        'cluster_composition.png',
+    ]:
+        print(f'  /content/{fname}')
 
 
 # Save & Download All Results
