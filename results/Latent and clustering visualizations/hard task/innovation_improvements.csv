@@ -1,0 +1,10 @@
+Dataset,Innovation,sil_pct_improvement,db_pct_improvement,ch_pct_improvement,nmi_pct_improvement,ari_pct_improvement,purity_pct_improvement
+GTZAN (English Multi-Genre),Ensemble-Fusion,66.05999755859375,32.89,265.25,46.14,107.66,31.76
+GTZAN (English Multi-Genre),Spectral(best-beta),-111.0,-106.07,-95.76,18.6,45.75,4.71
+GTZAN (English Multi-Genre),Spectral(Ensemble),65.69,34.19,250.37,47.86,111.27,31.76
+BanglaGITI (Bengali Songs),Ensemble-Fusion,30.299999237060547,0.02,228.47000122070312,30.85,296.35,14.81
+BanglaGITI (Bengali Songs),Spectral(best-beta),23.56,3.45,-43.12,0.01,104.8,0.0
+BanglaGITI (Bengali Songs),Spectral(Ensemble),23.81,-6.07,219.38,27.19,280.26,11.11
+BMGCD (Bangla Music Genre),Ensemble-Fusion,88.9000015258789,53.46,387.20001220703125,14.07,238.41,12.9
+BMGCD (Bangla Music Genre),Spectral(best-beta),-36.61,-97.6,-39.88,16.27,335.0,12.9
+BMGCD (Bangla Music Genre),Spectral(Ensemble),49.37,19.43,298.84,27.57,472.33,12.9

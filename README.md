@@ -14,52 +14,6 @@ This project implements a full pipeline:
 
 ## Repository Structure
 
-```
-VAE-music/
-├── config/
-│   └── config.py                  # All hyperparameters, paths, and constants
-├── src/
-│   ├── models/
-│   │   ├── base_vae.py            # Shared MLP builder + β-VAE loss
-│   │   ├── mlp_vae.py             # MLP-VAE and Beta-VAE
-│   │   ├── conv_vae.py            # Conv1D-VAE
-│   │   ├── cvae.py                # Conditional VAE (CVAE)
-│   │   ├── autoencoder.py         # Deterministic Autoencoder baseline
-│   │   ├── gmvae.py               # Gaussian Mixture VAE (K-component prior)
-│   │   ├── contrastive_vae.py     # InfoNCE + β-VAE with projection head
-│   │   └── dann_vae.py            # Domain Adversarial VAE (gradient reversal)
-│   ├── data/
-│   │   ├── features.py            # Librosa audio feature extraction (57-dim)
-│   │   ├── bangla.py              # yt-dlp downloader + Bangla feature extractor
-│   │   ├── fma.py                 # FMA metadata downloader and loader
-│   │   ├── lmd.py                 # LMD MIDI dataset loader
-│   │   └── gtzan.py               # GTZAN CSV loader
-│   ├── features/
-│   │   └── hybrid.py              # TF-IDF lyrics + audio fusion
-│   ├── clustering/
-│   │   └── engine.py              # K-Means / Agglomerative / DBSCAN + 6 metrics + MIG
-│   ├── training/
-│   │   └── trainer.py             # Unified training loop + latent extraction
-│   └── visualization/
-│       └── plots.py               # All plotting functions (20+ figures)
-├── scripts/
-│   ├── run_easy.py                # Easy Task end-to-end script
-│   ├── run_medium.py              # Medium Task end-to-end script
-│   └── run_hard.py                # Hard Task end-to-end script (all extensions)
-├── notebooks/
-│   ├── easy_task.ipynb            # Interactive Easy Task notebook
-│   ├── medium_task.ipynb          # Interactive Medium Task notebook
-│   └── hard_task.ipynb            # Interactive Hard Task notebook
-├── data/
-│   ├── audio/                     # Downloaded audio files (gitignored)
-│   └── lyrics/                    # Lyrics data (gitignored)
-├── results/
-│   ├── easy/                      # Easy Task plots and CSVs (committed)
-│   ├── medium/                    # Medium Task plots and CSVs (committed)
-│   └── hard/                      # Hard Task plots and CSVs (committed)
-└── requirements.txt
-```
-
 ## Tasks
 
 ### Easy Task
@@ -83,19 +37,11 @@ Core pipeline:
 - Six evaluation metrics including Cluster Purity
 - Full visualisation suite: t-SNE/UMAP per model, reconstruction examples, heatmaps, training curves
 
-Advanced Extensions (unique research contributions):
 
-| # | Extension | Description |
-|---|-----------|-------------|
-| Ext-1 | **GMVAE** | Gaussian Mixture VAE with K-component learned prior; soft component assignment |
-| Ext-2 | **β-Sensitivity** | Beta-VAE sweep over β ∈ {0.5, 1, 2, 4, 8, 16}; reconstruction vs. clustering tradeoff |
-| Ext-3 | **MIG** | Mutual Information Gap disentanglement metric (Chen et al. 2018) |
-| Ext-4 | **SLERP Interpolation** | Spherical linear interpolation between genre centroids in latent space |
-| Ext-5 | **Zero-Shot Transfer** | Cross-dataset transfer (FMA↔LMD↔GTZAN) with PCA alignment |
-| Ext-A | **Contrastive VAE** | InfoNCE (NT-Xent / SimCLR) + β-VAE with projection head |
-| Ext-B | **DANN-VAE** | Domain Adversarial VAE with gradient reversal layer (Ganin 2016) |
 
-Final output: mega comparison heatmap of all 11 models × 4 metrics × 3 datasets + quantitative report CSV.
+
+
+
 
 ## Datasets
 
@@ -149,9 +95,9 @@ python scripts/run_hard.py
 python scripts/run_hard.py --no-extensions
 
 # Common flags (all scripts)
---epochs 50          # Reduce training time for testing
+--epochs 100          # Reduce training time for testing
 --no-download        # Use cached data only (skip HTTP downloads)
---latent-dim 16      # Change latent dimension
+--latent-dim 64      # Change latent dimension
 ```
 
 All outputs are written to `results/easy/`, `results/medium/`, or `results/hard/` respectively.
@@ -184,21 +130,7 @@ Feature vector treated as a 1-D signal. Conv1d encoder (1→32→64→128, strid
 ### Multi-Modal VAE
 Input = L2_norm(audio) ‖ L2_norm(TF-IDF lyrics PCA-32) ‖ genre one-hot. Full β-VAE objective.
 
-### GMVAE (Gaussian Mixture VAE)
-Replaces the standard N(0, I) prior with a K-component Gaussian mixture.
-A learned `qy_net` produces soft component assignments; per-component (μ_k, σ_k) are trained end-to-end.
-KL is approximated as an upper bound: KL(q(z|x) ‖ Σ_k q(y=k) p(z|y=k)).
 
-### Contrastive VAE
-Combines β-VAE ELBO with InfoNCE (NT-Xent / SimCLR) loss.
-A projection head maps z → ℝ^64 (L2-normalised) for contrastive loss only; clustering uses z directly.
-Same-genre pairs are treated as positives; cross-genre pairs within a batch as negatives.
-
-### DANN-VAE (Domain Adversarial)
-Shared encoder across FMA / LMD / GTZAN with a domain classifier head.
-Gradient reversal layer (Ganin et al. 2016) flips the domain gradient sign during backprop,
-forcing the encoder to learn domain-invariant representations.
-λ is progressively ramped from 0 → 1 over training epochs.
 
 ## Evaluation Metrics
 
@@ -210,7 +142,7 @@ forcing the encoder to learn domain-invariant representations.
 | NMI | ↑ | Normalised mutual information with true labels |
 | ARI | ↑ | Adjusted Rand Index (corrects for chance) |
 | Cluster Purity | ↑ | Fraction of majority-class samples per cluster |
-| MIG | ↑ | Mutual Information Gap — disentanglement quality |
+
 
 ## Configuration
 

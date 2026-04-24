@@ -1,0 +1,3 @@
+Method,Silhouette Score,Calinski-Harabasz
+VAE + KMeans,0.11219999939203262,12.109999656677246
+PCA + KMeans,0.1172,13.32
