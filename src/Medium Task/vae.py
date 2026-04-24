@@ -3,10 +3,6 @@ vae.py
 ------
 All model architectures, shared helpers, loss function,
 unified training engine, and latent extraction.
-
-Step 3  → Conv2D Normalization Helpers
-Step 4  → All Model Architectures
-Step 10 → Unified Training Engine (AdamW + Cosine LR + Early Stopping)
 """
 
 import copy
@@ -22,7 +18,7 @@ from sklearn.preprocessing import normalize
 
 warnings.filterwarnings('ignore')
 
-# ── Global config (imported by other modules too) ─────────────────────────────
+# Global config (imported by other modules too)
 SEED                 = 42
 DEVICE               = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 LATENT_DIM           = 32
@@ -39,24 +35,22 @@ LYRIC_DIM            = 128
 FUSION_DIM           = 256
 KMEANS_NINIT         = 20
 
-# ── Spectrogram config ─────────────────────────────────────────────────────────
+# Spectrogram config
 N_MFCC        = 20
 TIME_FRAMES   = 128
-N_MFCC_ROWS   = 3 * N_MFCC   # 60 (MFCC + Δ + Δ²)
+N_MFCC_ROWS   = 3 * N_MFCC   # 60 (MFCC + delta + delta2)
 MFCC_2D_DIM   = N_MFCC_ROWS * TIME_FRAMES   # 7680
 AUDIO_FEAT_DIM = 65
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 3 — Conv2D Normalization Helpers
-# ════════════════════════════════════════════════════════════════════════════
+# Conv2D Normalization Helpers
 
 def normalize_for_conv2d(X_flat, n_rows=N_MFCC_ROWS, time_frames=TIME_FRAMES):
     """
     Per-coefficient (row) standardization for Conv2D input.
     Input  : (N, n_rows * time_frames) flat
     Output : (N, n_rows * time_frames) per-row normalized
-    Do NOT pass StandardScaler output — causes double normalization.
+    Do NOT pass StandardScaler output -- causes double normalization.
     """
     X_2d = X_flat.reshape(-1, n_rows, time_frames).copy()   # (N, 60, 128)
     mean = X_2d.mean(axis=(0, 2), keepdims=True)            # (1, 60, 1)
@@ -76,11 +70,9 @@ def align_for_conv2d(X_sc, target=None):
     return X_sc[:, :expected]
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 4 — All Model Architectures
-# ════════════════════════════════════════════════════════════════════════════
+# All Model Architectures
 
-# ── Shared helpers ─────────────────────────────────────────────────────────────
+# Shared helpers
 def make_mlp(dims, activation=nn.LeakyReLU, dropout=0.2, bn=True):
     """Build MLP with BN + activation on hidden layers only."""
     layers, prev = [], dims[0]
@@ -100,14 +92,14 @@ def make_mlp(dims, activation=nn.LeakyReLU, dropout=0.2, bn=True):
 
 
 def vae_loss_fn(recon, x, mu, lv, beta=1.0):
-    """ELBO: reconstruction (MSE) + β * KL divergence, averaged per sample."""
+    """ELBO: reconstruction (MSE) + beta * KL divergence, averaged per sample."""
     x_flat = x.view(x.size(0), -1)
     rl = F.mse_loss(recon, x_flat, reduction='sum') / x.size(0)
     kl = -0.5 * torch.sum(1 + lv - mu.pow(2) - lv.exp()) / x.size(0)
     return rl + beta * kl, rl.item(), kl.item()
 
 
-# ── A) MLP-VAE ─────────────────────────────────────────────────────────────────
+# A) MLP-VAE
 class MLPVAE(nn.Module):
     def __init__(self, in_dim, z_dim=LATENT_DIM, h=HIDDEN_DIMS):
         super().__init__()
@@ -137,9 +129,9 @@ class MLPVAE(nn.Module):
         return mu
 
 
-# ── B) Beta-VAE ────────────────────────────────────────────────────────────────
+# B) Beta-VAE
 class BetaVAE(nn.Module):
-    """Deeper VAE with tighter lv clamp for stable high-β training."""
+    """Deeper VAE with tighter lv clamp for stable high-beta training."""
     def __init__(self, in_dim, z_dim=LATENT_DIM, beta=4.0, h=(512, 256, 128, 64)):
         super().__init__()
         self.beta   = beta
@@ -187,7 +179,7 @@ class BetaVAE(nn.Module):
         return var_per_dim.numpy(), entropy
 
 
-# ── C) CVAE ────────────────────────────────────────────────────────────────────
+# C) CVAE
 class CVAE(nn.Module):
     def __init__(self, in_dim, n_class, z_dim=LATENT_DIM, h=HIDDEN_DIMS):
         super().__init__()
@@ -224,7 +216,7 @@ class CVAE(nn.Module):
         return mu
 
 
-# ── D) Conv1D-VAE ──────────────────────────────────────────────────────────────
+# D) Conv1D-VAE
 class ConvVAE(nn.Module):
     def __init__(self, in_dim, z_dim=LATENT_DIM, channels=(32, 64, 128)):
         super().__init__()
@@ -276,7 +268,7 @@ class ConvVAE(nn.Module):
         return mu
 
 
-# ── E) Autoencoder (deterministic baseline) ────────────────────────────────────
+# E) Autoencoder (deterministic baseline)
 class Autoencoder(nn.Module):
     def __init__(self, in_dim, z_dim=LATENT_DIM, h=HIDDEN_DIMS):
         super().__init__()
@@ -294,7 +286,7 @@ class Autoencoder(nn.Module):
         return self.encoder(x), None
 
 
-# ── F) MultiModalVAE ───────────────────────────────────────────────────────────
+# F) MultiModalVAE
 class MultiModalVAE(nn.Module):
     """Joint audio+lyric encoder. Reconstructs audio only (primary modality)."""
     def __init__(self, audio_dim=AUDIO_FEAT_DIM, lyric_dim=LYRIC_DIM,
@@ -334,7 +326,7 @@ class MultiModalVAE(nn.Module):
         return mu
 
 
-# ── G) Conv2D-VAE ──────────────────────────────────────────────────────────────
+# G) Conv2D-VAE
 class Conv2DEncoder(nn.Module):
     """Input: (B, 1, N_MFCC_ROWS, TIME_FRAMES) = (B, 1, 60, 128)"""
     def __init__(self, n_mfcc=N_MFCC_ROWS, time_frames=TIME_FRAMES,
@@ -360,7 +352,7 @@ class Conv2DEncoder(nn.Module):
 
 
 class Conv2DDecoder(nn.Module):
-    """Input: z (B, z_dim) → reconstructed flat spectrogram (B, N_MFCC_ROWS*TIME_FRAMES)"""
+    """Input: z (B, z_dim) -> reconstructed flat spectrogram (B, N_MFCC_ROWS*TIME_FRAMES)"""
     def __init__(self, z_dim=LATENT_DIM, flat_dim=None,
                  n_mfcc=N_MFCC_ROWS, time_frames=TIME_FRAMES,
                  channels=CONV_CHANNELS):
@@ -423,7 +415,7 @@ class Conv2DVAE(nn.Module):
         return mu
 
 
-# ── H) HybridConvVAE ───────────────────────────────────────────────────────────
+# H) HybridConvVAE
 #
 # Input contract:
 #   Passed as single array X_hybrid_conv = np.hstack([X_conv2d, X_lyric_l2])
@@ -454,13 +446,13 @@ class HybridConvVAE(nn.Module):
             dummy          = torch.zeros(1, 1, n_mfcc, time_frames)
             self.conv_flat = self.conv_enc(dummy).view(1, -1).shape[1]
 
-        # Lyric projection → same width as conv_flat for balanced fusion
+        # Lyric projection -> same width as conv_flat for balanced fusion
         self.lyric_proj = nn.Sequential(
             nn.Linear(lyric_dim, self.conv_flat),
             nn.LayerNorm(self.conv_flat),
             nn.LeakyReLU(0.2),
         )
-        # Fusion: conv_flat + lyric_flat → fusion_dim
+        # Fusion: conv_flat + lyric_flat -> fusion_dim
         self.fusion = nn.Sequential(
             nn.Linear(self.conv_flat * 2, fusion_dim),
             nn.BatchNorm1d(fusion_dim),
@@ -517,9 +509,7 @@ class HybridConvVAE(nn.Module):
         return mu
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 10 — Unified Training Engine
-# ════════════════════════════════════════════════════════════════════════════
+# Unified Training Engine
 
 def train_model(X_sc, model, y_onehot=None,
                 epochs=EPOCHS, lr=LR, beta=1.0,
@@ -532,13 +522,13 @@ def train_model(X_sc, model, y_onehot=None,
     audio_dim  : required when model_type='multimodal'
 
     INPUT CONTRACT per model_type:
-      'vae' on MLPVAE/BetaVAE/ConvVAE  → X_sc (StandardScaler audio, 65-dim)
-      'vae' on Conv2DVAE                → X_conv2d = normalize_for_conv2d(X_raw_2d) (7680-dim)
-      'ae'                              → X_sc (65-dim)
-      'cvae'                            → X_sc (65-dim) + y_onehot
-      'multimodal'                      → X_multimodal = np.hstack([X_sc, X_lyric_l2]) (193-dim)
-      'hybrid_conv'                     → X_hybrid_conv = np.hstack([X_conv2d, X_lyric_l2]) (7808-dim)
-      'vae' on MLPVAE for Hybrid-MLP    → X_hybrid (L2 audio ‖ L2 lyrics) (193-dim)
+      'vae' on MLPVAE/BetaVAE/ConvVAE  -> X_sc (StandardScaler audio, 65-dim)
+      'vae' on Conv2DVAE                -> X_conv2d = normalize_for_conv2d(X_raw_2d) (7680-dim)
+      'ae'                              -> X_sc (65-dim)
+      'cvae'                            -> X_sc (65-dim) + y_onehot
+      'multimodal'                      -> X_multimodal = np.hstack([X_sc, X_lyric_l2]) (193-dim)
+      'hybrid_conv'                     -> X_hybrid_conv = np.hstack([X_conv2d, X_lyric_l2]) (7808-dim)
+      'vae' on MLPVAE for Hybrid-MLP    -> X_hybrid (L2 audio || L2 lyrics) (193-dim)
     """
     model = model.to(DEVICE)
     opt   = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
@@ -656,7 +646,7 @@ def extract_latent(model, X_sc, batch_size=BATCH_SIZE,
     return np.vstack(Z_list)
 
 
-print('✅ vae.py loaded')
+print('vae.py loaded')
 print('   Architectures: MLPVAE | BetaVAE | CVAE | ConvVAE | Autoencoder')
 print('   Conv2DVAE | HybridConvVAE | MultiModalVAE')
 print('   Engine: train_model() | extract_latent()')
