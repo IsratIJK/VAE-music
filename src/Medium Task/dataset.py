@@ -33,11 +33,11 @@ from vae import (AUDIO_FEAT_DIM, MFCC_2D_DIM, N_MFCC, N_MFCC_ROWS,
 warnings.filterwarnings('ignore')
 
 # Dataset directories
-GTZAN_DIR      = '/content/gtzan'
+GTZAN_DIR = '/content/gtzan'
 BANGLAGITI_DIR = '/content/banglagiti'
-BMGCD_DIR      = '/content/bmgcd'
-BANGLA_YT_DIR  = '/content/bangla_audio'
-OUTPUT_DIR     = '/content/vae_combined_outputs'
+BMGCD_DIR = '/content/bmgcd'
+BANGLA_YT_DIR = '/content/bangla_audio'
+OUTPUT_DIR = '/content/vae_combined_outputs'
 for d in [GTZAN_DIR, BANGLAGITI_DIR, BMGCD_DIR, BANGLA_YT_DIR, OUTPUT_DIR]:
     os.makedirs(d, exist_ok=True)
 
@@ -47,24 +47,24 @@ LYRICS_CACHE = '/content/lyrics_cache'
 os.makedirs(LYRICS_CACHE, exist_ok=True)
 
 # Dataset config
-N_PER_GENRE             = 20
+N_PER_GENRE = 20
 MIN_SAMPLES_FOR_METRICS = 30
-N_BANGLA_PER_GENRE      = 20
+N_BANGLA_PER_GENRE = 20
 
 BANGLA_QUERIES_YT = {
     'Rabindra_Sangeet': 'rabindra sangeet full song playlist',
-    'Baul':             'baul song bangla authentic',
-    'Folk':             'bangla folk song lok geeti traditional',
-    'Modern_Pop':       'bangla modern song adhunik gaan',
-    'Classical':        'bangla classical music raga',
+    'Baul': 'baul song bangla authentic',
+    'Folk': 'bangla folk song lok geeti traditional',
+    'Modern_Pop': 'bangla modern song adhunik gaan',
+    'Classical': 'bangla classical music raga',
 }
 
 BMGCD_QUERIES_YT = {
-    'Adhunik':   'bangla adhunik gaan modern',
-    'Baul':      'baul gaan bengali mystical folk',
+    'Adhunik': 'bangla adhunik gaan modern',
+    'Baul': 'baul gaan bengali mystical folk',
     'Classical': 'bangla shashtriya sangeet raga',
-    'Folk':      'bangla palli geeti folk rural',
-    'Rabindra':  'rabindra sangeet tagore',
+    'Folk': 'bangla palli geeti folk rural',
+    'Rabindra': 'rabindra sangeet tagore',
 }
 
 # Neutral fallback (no genre vocabulary, no label leakage)
@@ -111,9 +111,9 @@ def _get_genius():
     if _genius_client is None and GENIUS_TOKEN not in ('', 'your_token_here'):
         try:
             _genius_client = lyricsgenius.Genius(GENIUS_TOKEN, timeout=10)
-            _genius_client.skip_non_songs  = True
-            _genius_client.excluded_terms  = ['(Remix)', '(Live)']
-            _genius_client.verbose         = False
+            _genius_client.skip_non_songs = True
+            _genius_client.excluded_terms = ['(Remix)', '(Live)']
+            _genius_client.verbose = False
         except Exception as e:
             print('Genius init failed:', e)
     return _genius_client
@@ -153,7 +153,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0'}
 def _scrape_gaanesuno(title, artist=None):
     query_str = (title + ' ' + (artist or '')).strip().replace(' ', '+')
     try:
-        r    = requests.get(f'https://www.gaanesuno.com/?s={query_str}',
+        r = requests.get(f'https://www.gaanesuno.com/?s={query_str}',
                             headers=HEADERS, timeout=10)
         soup = BeautifulSoup(r.text, 'html.parser')
         result = (soup.select_one('h2.entry-title a') or
@@ -161,7 +161,7 @@ def _scrape_gaanesuno(title, artist=None):
                   soup.select_one('article a'))
         if not result:
             return None
-        page  = requests.get(result['href'], headers=HEADERS, timeout=10)
+        page = requests.get(result['href'], headers=HEADERS, timeout=10)
         psoup = BeautifulSoup(page.text, 'html.parser')
         content = (psoup.select_one('.entry-content') or
                    psoup.select_one('.lyric-content') or
@@ -214,37 +214,37 @@ def make_multimodal(X_audio_sc, records, lyric_dim=LYRIC_DIM):
     """
     N = len(records)
     lyric_texts = []
-    has_real    = np.zeros(N, dtype=bool)
+    has_real = np.zeros(N, dtype=bool)
 
     for i, rec in enumerate(records):
-        fpath    = rec.get('file', '')
-        genre    = rec.get('genre', 'other')
+        fpath = rec.get('file', '')
+        genre = rec.get('genre', 'other')
         language = rec.get('language', 'English')
-        lyric    = fetch_lyrics(fpath, genre, language) if fpath else None
+        lyric = fetch_lyrics(fpath, genre, language) if fpath else None
         if lyric:
             lyric_texts.append(lyric)
             has_real[i] = True
         else:
             lyric_texts.append(LYRIC_FALLBACK)
 
-    tfidf   = TfidfVectorizer(max_features=2000, ngram_range=(1, 2),
+    tfidf = TfidfVectorizer(max_features=2000, ngram_range=(1, 2),
                               sublinear_tf=True, min_df=1)
     X_tfidf = tfidf.fit_transform(lyric_texts).toarray().astype(np.float32)
 
-    n_comp  = min(lyric_dim, X_tfidf.shape[1], X_tfidf.shape[0] - 1)
-    n_comp  = max(n_comp, 2)
+    n_comp = min(lyric_dim, X_tfidf.shape[1], X_tfidf.shape[0] - 1)
+    n_comp = max(n_comp, 2)
     X_lyric = TruncatedSVD(n_components=n_comp, random_state=42).fit_transform(X_tfidf).astype(np.float32)
 
     if X_lyric.shape[1] < lyric_dim:
-        pad     = np.zeros((N, lyric_dim - X_lyric.shape[1]), dtype=np.float32)
+        pad = np.zeros((N, lyric_dim - X_lyric.shape[1]), dtype=np.float32)
         X_lyric = np.hstack([X_lyric, pad])
 
-    audio_l2   = normalize(X_audio_sc, norm='l2')
-    X_lyric_l2 = normalize(X_lyric,    norm='l2')
-    X_hybrid   = np.hstack([audio_l2, X_lyric_l2]).astype(np.float32)
+    audio_l2 = normalize(X_audio_sc, norm='l2')
+    X_lyric_l2 = normalize(X_lyric, norm='l2')
+    X_hybrid = np.hstack([audio_l2, X_lyric_l2]).astype(np.float32)
 
     real_pct = has_real.mean() * 100
-    print(f'  Lyrics     : {has_real.sum()}/{N} real ({real_pct:.1f}%)'
+    print(f' Lyrics : {has_real.sum()}/{N} real ({real_pct:.1f}%)'
           f' | {N - has_real.sum()} neutral fallback')
     print(f'  X_hybrid   : {X_hybrid.shape}  (L2 audio || L2 lyrics)')
     return X_hybrid, has_real, X_lyric_l2
@@ -262,7 +262,7 @@ def extract_audio_features(fpath, sr=22050, duration=30, n_mfcc=20):
     """
     65-dim feature vector:
       MFCC mean(20) + std(20) = 40
-      Chroma STFT mean        = 12
+      Chroma STFT mean = 12
       Spectral centroid, bandwidth, rolloff, ZCR, RMS = 5
       Tempo = 1 | Spectral contrast mean = 7
     Total = 65
@@ -271,13 +271,13 @@ def extract_audio_features(fpath, sr=22050, duration=30, n_mfcc=20):
         y, _ = librosa.load(fpath, sr=sr, duration=duration, mono=True)
         if len(y) < sr * 3:
             return None
-        mfcc     = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
-        chroma   = librosa.feature.chroma_stft(y=y, sr=sr)
-        sc       = librosa.feature.spectral_centroid(y=y, sr=sr)
-        sb       = librosa.feature.spectral_bandwidth(y=y, sr=sr)
+        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+        sc = librosa.feature.spectral_centroid(y=y, sr=sr)
+        sb = librosa.feature.spectral_bandwidth(y=y, sr=sr)
         sr_feat  = librosa.feature.spectral_rolloff(y=y, sr=sr)
-        zcr      = librosa.feature.zero_crossing_rate(y)
-        rms      = librosa.feature.rms(y=y)
+        zcr = librosa.feature.zero_crossing_rate(y)
+        rms = librosa.feature.rms(y=y)
         tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
         contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
         feat = np.concatenate([
@@ -302,10 +302,10 @@ def extract_mfcc_2d(fpath, sr=22050, duration=30,
         y, _ = librosa.load(fpath, sr=sr, duration=duration, mono=True)
         if len(y) < sr * 3:
             return None
-        mfcc   = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
-        delta  = librosa.feature.delta(mfcc)
+        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
+        delta = librosa.feature.delta(mfcc)
         delta2 = librosa.feature.delta(mfcc, order=2)
-        mfcc   = np.vstack([mfcc, delta, delta2])   # (3*n_mfcc, T)
+        mfcc = np.vstack([mfcc, delta, delta2])   # (3*n_mfcc, T)
         if mfcc.shape[1] >= time_frames:
             mfcc = mfcc[:, :time_frames]
         else:
@@ -319,40 +319,40 @@ def download_kaggle_dataset(slug, dest_dir):
     """Download & unzip a Kaggle dataset. Returns dest_dir or None."""
     os.makedirs(dest_dir, exist_ok=True)
     audio_exts = ['.wav', '.mp3', '.flac', '.ogg', '.m4a']
-    existing   = []
+    existing = []
     for ext in audio_exts:
         existing += glob.glob(f'{dest_dir}/**/*{ext}', recursive=True)
     if existing:
-        print(f'  {slug}: {len(existing)} audio files already present.')
+        print(f' {slug}: {len(existing)} audio files already present.')
         return dest_dir
     kaggle_json = os.path.expanduser('~/.kaggle/kaggle.json')
     if not os.path.exists(kaggle_json):
-        print(f'  WARNING: kaggle.json not found -- cannot download {slug}.')
+        print(f' WARNING: kaggle.json not found -- cannot download {slug}.')
         return None
-    print(f'  Downloading Kaggle: {slug} ...')
+    print(f' Downloading Kaggle: {slug} ...')
     try:
         result = subprocess.run(
             ['kaggle', 'datasets', 'download', '-d', slug, '-p', dest_dir, '--unzip'],
             capture_output=True, text=True, timeout=600,
         )
         if result.returncode != 0:
-            print(f'  kaggle CLI error: {result.stderr[:200]}')
+            print(f' kaggle CLI error: {result.stderr[:200]}')
             return None
         found = []
         for ext in audio_exts:
             found += glob.glob(f'{dest_dir}/**/*{ext}', recursive=True)
-        print(f'  {slug}: {len(found)} audio files extracted.')
+        print(f' {slug}: {len(found)} audio files extracted.')
         return dest_dir if found else None
     except Exception as e:
-        print(f'  Kaggle download failed: {e}')
+        print(f' Kaggle download failed: {e}')
         return None
 
 
 def collect_audio_from_dir(root_dir, min_per_genre=5):
     """Walk root_dir. Genre = immediate parent directory of audio file."""
     audio_exts = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
-    records    = []
-    root_base  = os.path.basename(os.path.normpath(root_dir))
+    records = []
+    root_base = os.path.basename(os.path.normpath(root_dir))
     for dirpath, _, filenames in os.walk(root_dir):
         for fname in filenames:
             if os.path.splitext(fname)[1].lower() in audio_exts:
@@ -361,22 +361,22 @@ def collect_audio_from_dir(root_dir, min_per_genre=5):
                 if genre in ('.', '', root_base):
                     genre = 'unknown'
                 records.append((fpath, genre))
-    counts   = Counter(g for _, g in records)
+    counts = Counter(g for _, g in records)
     filtered = [(f, g) for f, g in records if counts[g] >= min_per_genre]
     dropped  = len(records) - len(filtered)
     if dropped:
-        print(f'  (dropped {dropped} samples from genres with <{min_per_genre} tracks)')
+        print(f' (dropped {dropped} samples from genres with <{min_per_genre} tracks)')
     return filtered
 
 
 def download_bangla_yt(genre, query, n=N_BANGLA_PER_GENRE):
-    out_dir  = f'{BANGLA_YT_DIR}/{genre}'
+    out_dir = f'{BANGLA_YT_DIR}/{genre}'
     os.makedirs(out_dir, exist_ok=True)
     existing = glob.glob(f'{out_dir}/*.wav') + glob.glob(f'{out_dir}/*.mp3')
     if len(existing) >= n:
-        print(f'  {genre}: {len(existing)} files cached.')
+        print(f' {genre}: {len(existing)} files cached.')
         return existing[:n]
-    print(f'  yt-dlp {genre}: fetching up to {n} tracks ...')
+    print(f' yt-dlp {genre}: fetching up to {n} tracks ...')
     cmd = [
         'yt-dlp', f'ytsearch{n}:{query}',
         '--extract-audio', '--audio-format', 'wav', '--audio-quality', '5',
@@ -387,11 +387,11 @@ def download_bangla_yt(genre, query, n=N_BANGLA_PER_GENRE):
         result = subprocess.run(cmd, timeout=300, check=False,
                                 capture_output=True, text=True)
         if result.returncode != 0 and result.stderr:
-            print(f'  yt-dlp stderr: {result.stderr[:200]}')
+            print(f' yt-dlp stderr: {result.stderr[:200]}')
     except subprocess.TimeoutExpired:
-        print(f'  yt-dlp timeout for {genre}.')
+        print(f' yt-dlp timeout for {genre}.')
     files = glob.glob(f'{out_dir}/*.wav') + glob.glob(f'{out_dir}/*.mp3')
-    print(f'  {len(files)} files downloaded for {genre}')
+    print(f' {len(files)} files downloaded for {genre}')
     return files
 
 
@@ -436,7 +436,7 @@ def download_gtzan():
         'https://huggingface.co/datasets/marsyas/gtzan/resolve/main/data/genres.tar.gz?download=true',
         'https://archive.org/download/gtzan_genre/genres.tar.gz',
     ]
-    downloaded_via_tar    = False
+    downloaded_via_tar = False
     downloaded_via_kaggle = False
 
     for url in GTZAN_MIRRORS:
@@ -444,14 +444,14 @@ def download_gtzan():
             print(f'Trying: {url}')
             _stream_dl(url, GTZAN_TAR, desc='GTZAN')
             if os.path.getsize(GTZAN_TAR) < 10_000_000:
-                print('  File too small -- likely error page, skipping.')
+                print(' File too small -- likely error page, skipping.')
                 os.remove(GTZAN_TAR); continue
             downloaded_via_tar = True; break
         except Exception as e:
             print(f'  Mirror failed: {e}')
 
     if not downloaded_via_tar:
-        print('  All HTTP mirrors failed -- trying Kaggle ...')
+        print(' All HTTP mirrors failed -- trying Kaggle ...')
         r2 = subprocess.run(
             ['kaggle', 'datasets', 'download', '-d',
              'andradaolteanu/gtzan-dataset-music-genre-classification',
@@ -512,7 +512,7 @@ def build_all_datasets(gtzan_audio_dir=None):
     gtzan_wav = sorted(glob.glob(f'{gtzan_audio_dir}/**/*.wav', recursive=True))
     if not gtzan_wav:
         gtzan_wav = sorted(glob.glob(f'{GTZAN_DIR}/**/*.wav', recursive=True))
-    print(f'  Found {len(gtzan_wav)} .wav files.')
+    print(f' Found {len(gtzan_wav)} .wav files.')
 
     gc_g = defaultdict(int)
     X_gtzan, X_gtzan_2d, y_gtzan, lang_gtzan, paths_gtzan = [], [], [], [], []
@@ -520,7 +520,7 @@ def build_all_datasets(gtzan_audio_dir=None):
         genre = os.path.basename(os.path.dirname(fpath))
         if gc_g[genre] >= N_PER_GENRE:
             continue
-        feat    = extract_audio_features(fpath)
+        feat = extract_audio_features(fpath)
         feat_2d = extract_mfcc_2d(fpath)
         if feat is not None and feat_2d is not None:
             X_gtzan.append(feat); X_gtzan_2d.append(feat_2d)
@@ -529,9 +529,9 @@ def build_all_datasets(gtzan_audio_dir=None):
 
     if len(X_gtzan) == 0:
         raise RuntimeError('GTZAN: no features extracted. Check Step 11 download.')
-    X_gtzan    = np.array(X_gtzan,    dtype=np.float32)
+    X_gtzan = np.array(X_gtzan,    dtype=np.float32)
     X_gtzan_2d = np.array(X_gtzan_2d, dtype=np.float32)
-    y_gtzan    = np.array(y_gtzan)
+    y_gtzan = np.array(y_gtzan)
     lang_gtzan = np.array(lang_gtzan)
     print(f'GTZAN: {X_gtzan.shape} | 2D: {X_gtzan_2d.shape} | Genres: {dict(Counter(y_gtzan))}')
 
@@ -541,10 +541,10 @@ def build_all_datasets(gtzan_audio_dir=None):
     X_bg, X_bg_2d, y_bg, lang_bg, paths_bg = [], [], [], [], []
     if bg_dir:
         recs_bg = collect_audio_from_dir(bg_dir, min_per_genre=0)
-        gc_bg   = defaultdict(int)
+        gc_bg = defaultdict(int)
         for fpath, genre in tqdm(recs_bg, desc='  librosa BanglaGITI', leave=False):
             if gc_bg[genre] >= N_PER_GENRE: continue
-            feat    = extract_audio_features(fpath)
+            feat = extract_audio_features(fpath)
             feat_2d = extract_mfcc_2d(fpath)
             if feat is not None and feat_2d is not None:
                 X_bg.append(feat); X_bg_2d.append(feat_2d)
@@ -558,7 +558,7 @@ def build_all_datasets(gtzan_audio_dir=None):
             files = download_bangla_yt(genre, query, n=N_PER_GENRE)
             for fpath in tqdm(files, desc=f'  librosa {genre}', leave=False):
                 if gc_fb[genre] >= N_PER_GENRE: continue
-                feat    = extract_audio_features(fpath)
+                feat = extract_audio_features(fpath)
                 feat_2d = extract_mfcc_2d(fpath)
                 if feat is not None and feat_2d is not None:
                     X_bg.append(feat); X_bg_2d.append(feat_2d)
@@ -567,13 +567,13 @@ def build_all_datasets(gtzan_audio_dir=None):
 
     if len(X_bg) == 0:
         print('  WARNING: BanglaGITI has 0 usable samples.')
-        X_bg    = np.zeros((0, FEAT_DIM),     dtype=np.float32)
+        X_bg = np.zeros((0, FEAT_DIM),     dtype=np.float32)
         X_bg_2d = np.zeros((0, MFCC_2D_DIM),  dtype=np.float32)
-        y_bg    = np.array([]); lang_bg = np.array([])
+        y_bg = np.array([]); lang_bg = np.array([])
     else:
-        X_bg    = np.array(X_bg,    dtype=np.float32)
+        X_bg = np.array(X_bg, dtype=np.float32)
         X_bg_2d = np.array(X_bg_2d, dtype=np.float32)
-        y_bg    = np.array(y_bg); lang_bg = np.array(lang_bg)
+        y_bg = np.array(y_bg); lang_bg = np.array(lang_bg)
         print(f'BanglaGITI: {X_bg.shape} | Genres: {dict(Counter(y_bg))}')
 
     # BMGCD
@@ -583,10 +583,10 @@ def build_all_datasets(gtzan_audio_dir=None):
     X_bm, X_bm_2d, y_bm, lang_bm, paths_bm = [], [], [], [], []
     if bm_dir:
         recs_bm = collect_audio_from_dir(bm_dir, min_per_genre=10)
-        gc_bm   = defaultdict(int)
+        gc_bm = defaultdict(int)
         for fpath, genre in tqdm(recs_bm, desc='  librosa BMGCD', leave=False):
             if gc_bm[genre] >= N_PER_GENRE: continue
-            feat    = extract_audio_features(fpath)
+            feat = extract_audio_features(fpath)
             feat_2d = extract_mfcc_2d(fpath)
             if feat is not None and feat_2d is not None:
                 X_bm.append(feat); X_bm_2d.append(feat_2d)
@@ -594,13 +594,13 @@ def build_all_datasets(gtzan_audio_dir=None):
                 paths_bm.append(fpath); gc_bm[genre] += 1
 
     if len(X_bm) < MIN_SAMPLES_FOR_METRICS:
-        print('  BMGCD unavailable -- yt-dlp fallback ...')
+        print(' BMGCD unavailable -- yt-dlp fallback ...')
         gc_fb2 = defaultdict(int)
         for genre, query in BMGCD_QUERIES_YT.items():
             files = download_bangla_yt(genre, query, n=N_PER_GENRE)
             for fpath in tqdm(files, desc=f'  librosa {genre}', leave=False):
                 if gc_fb2[genre] >= N_PER_GENRE: continue
-                feat    = extract_audio_features(fpath)
+                feat = extract_audio_features(fpath)
                 feat_2d = extract_mfcc_2d(fpath)
                 if feat is not None and feat_2d is not None:
                     X_bm.append(feat); X_bm_2d.append(feat_2d)
@@ -609,19 +609,19 @@ def build_all_datasets(gtzan_audio_dir=None):
 
     if len(X_bm) == 0:
         print('  WARNING: BMGCD has 0 usable samples.')
-        X_bm    = np.zeros((0, FEAT_DIM),     dtype=np.float32)
+        X_bm = np.zeros((0, FEAT_DIM),     dtype=np.float32)
         X_bm_2d = np.zeros((0, MFCC_2D_DIM),  dtype=np.float32)
-        y_bm    = np.array([]); lang_bm = np.array([])
+        y_bm = np.array([]); lang_bm = np.array([])
     else:
-        X_bm    = np.array(X_bm,    dtype=np.float32)
+        X_bm = np.array(X_bm,    dtype=np.float32)
         X_bm_2d = np.array(X_bm_2d, dtype=np.float32)
-        y_bm    = np.array(y_bm); lang_bm = np.array(lang_bm)
+        y_bm = np.array(y_bm); lang_bm = np.array(lang_bm)
         print(f'BMGCD: {X_bm.shape} | Genres: {dict(Counter(y_bm))}')
 
     # Records for make_multimodal()
     records_gtzan = make_records(paths_gtzan, y_gtzan, lang_gtzan)
-    records_bg    = make_records(paths_bg,    y_bg,    lang_bg)
-    records_bm    = make_records(paths_bm,    y_bm,    lang_bm)
+    records_bg = make_records(paths_bg,    y_bg,    lang_bg)
+    records_bm = make_records(paths_bm,    y_bm,    lang_bm)
 
     # Fit shared scaler on all combined audio features
     _parts = [X for X in [X_gtzan, X_bg, X_bm] if len(X) > 0]
@@ -632,23 +632,23 @@ def build_all_datasets(gtzan_audio_dir=None):
     # Summary
     print()
     print('=' * 60)
-    print('  DATASET SUMMARY')
+    print(' DATASET SUMMARY')
     print('=' * 60)
     for name, X, y in [('GTZAN', X_gtzan, y_gtzan),
                        ('BanglaGITI', X_bg, y_bg),
                        ('BMGCD', X_bm, y_bm)]:
         if len(X) > 0:
-            print(f'  {name:<12}: {X.shape}  Genres: {len(np.unique(y))}  -> {dict(Counter(y))}')
+            print(f' {name:<12}: {X.shape}  Genres: {len(np.unique(y))}  -> {dict(Counter(y))}')
         else:
-            print(f'  {name:<12}: EMPTY -- skipped')
+            print(f' {name:<12}: EMPTY -- skipped')
     print('=' * 60)
 
     return (X_gtzan, X_gtzan_2d, y_gtzan, lang_gtzan, paths_gtzan, records_gtzan,
-            X_bg,    X_bg_2d,    y_bg,    lang_bg,    paths_bg,    records_bg,
-            X_bm,    X_bm_2d,    y_bm,    lang_bm,    paths_bm,    records_bm,
+            X_bg, X_bg_2d, y_bg, lang_bg, paths_bg, records_bg,
+            X_bm, X_bm_2d, y_bm, lang_bm, paths_bm, records_bm,
             scaler_all)
 
 
 print('dataset.py loaded')
-print(f'   extract_audio_features: {AUDIO_FEAT_DIM}-dim')
-print(f'   extract_mfcc_2d       : {MFCC_2D_DIM}-dim  (MFCC+delta+delta2 x {TIME_FRAMES})')
+print(f' extract_audio_features: {AUDIO_FEAT_DIM}-dim')
+print(f' extract_mfcc_2d : {MFCC_2D_DIM}-dim  (MFCC+delta+delta2 x {TIME_FRAMES})')

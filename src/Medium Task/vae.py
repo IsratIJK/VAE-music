@@ -19,27 +19,27 @@ from sklearn.preprocessing import normalize
 warnings.filterwarnings('ignore')
 
 # Global config (imported by other modules too)
-SEED                 = 42
-DEVICE               = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-LATENT_DIM           = 32
-HIDDEN_DIMS          = (256, 128, 64)
-CONV_CHANNELS        = (32, 64, 128)
-EPOCHS               = 100
+SEED = 42
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+LATENT_DIM = 32
+HIDDEN_DIMS = (256, 128, 64)
+CONV_CHANNELS = (32, 64, 128)
+EPOCHS = 100
 EARLY_STOP_PATIENCE  = 10
-LR                   = 1e-3
-BETA                 = 1.0
-BETA_VAE_B           = 4.0
-BETA_VALUES          = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0]
-BATCH_SIZE           = 256
-LYRIC_DIM            = 128
-FUSION_DIM           = 256
-KMEANS_NINIT         = 20
+LR = 1e-3
+BETA = 1.0
+BETA_VAE_B = 4.0
+BETA_VALUES = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0]
+BATCH_SIZE = 256
+LYRIC_DIM = 128
+FUSION_DIM = 256
+KMEANS_NINIT = 20
 
 # Spectrogram config
-N_MFCC        = 20
-TIME_FRAMES   = 128
-N_MFCC_ROWS   = 3 * N_MFCC   # 60 (MFCC + delta + delta2)
-MFCC_2D_DIM   = N_MFCC_ROWS * TIME_FRAMES   # 7680
+N_MFCC = 20
+TIME_FRAMES = 128
+N_MFCC_ROWS = 3 * N_MFCC   # 60 (MFCC + delta + delta2)
+MFCC_2D_DIM = N_MFCC_ROWS * TIME_FRAMES   # 7680
 AUDIO_FEAT_DIM = 65
 
 
@@ -48,13 +48,13 @@ AUDIO_FEAT_DIM = 65
 def normalize_for_conv2d(X_flat, n_rows=N_MFCC_ROWS, time_frames=TIME_FRAMES):
     """
     Per-coefficient (row) standardization for Conv2D input.
-    Input  : (N, n_rows * time_frames) flat
+    Input : (N, n_rows * time_frames) flat
     Output : (N, n_rows * time_frames) per-row normalized
     Do NOT pass StandardScaler output -- causes double normalization.
     """
     X_2d = X_flat.reshape(-1, n_rows, time_frames).copy()   # (N, 60, 128)
-    mean = X_2d.mean(axis=(0, 2), keepdims=True)            # (1, 60, 1)
-    std  = X_2d.std(axis=(0, 2),  keepdims=True) + 1e-8
+    mean = X_2d.mean(axis=(0, 2), keepdims=True) # (1, 60, 1)
+    std = X_2d.std(axis=(0, 2),  keepdims=True) + 1e-8
     X_2d = (X_2d - mean) / std
     return X_2d.reshape(-1, n_rows * time_frames).astype(np.float32)
 
@@ -62,7 +62,7 @@ def normalize_for_conv2d(X_flat, n_rows=N_MFCC_ROWS, time_frames=TIME_FRAMES):
 def align_for_conv2d(X_sc, target=None):
     """Pad or crop flat array to exactly N_MFCC_ROWS * TIME_FRAMES."""
     expected = target or (N_MFCC_ROWS * TIME_FRAMES)
-    current  = X_sc.shape[1]
+    current = X_sc.shape[1]
     if current == expected:
         return X_sc
     if current < expected:
@@ -104,8 +104,8 @@ class MLPVAE(nn.Module):
     def __init__(self, in_dim, z_dim=LATENT_DIM, h=HIDDEN_DIMS):
         super().__init__()
         self.enc_net = make_mlp([in_dim] + list(h))
-        self.mu_fc   = nn.Linear(h[-1], z_dim)
-        self.lv_fc   = nn.Linear(h[-1], z_dim)
+        self.mu_fc = nn.Linear(h[-1], z_dim)
+        self.lv_fc = nn.Linear(h[-1], z_dim)
         self.dec_net = make_mlp([z_dim] + list(reversed(h)) + [in_dim])
 
     def encode(self, x):
@@ -134,12 +134,12 @@ class BetaVAE(nn.Module):
     """Deeper VAE with tighter lv clamp for stable high-beta training."""
     def __init__(self, in_dim, z_dim=LATENT_DIM, beta=4.0, h=(512, 256, 128, 64)):
         super().__init__()
-        self.beta   = beta
-        self.z_dim  = z_dim
+        self.beta = beta
+        self.z_dim = z_dim
         self.in_dim = in_dim
         self.enc_net = make_mlp([in_dim] + list(h))
-        self.mu_fc   = nn.Linear(h[-1], z_dim)
-        self.lv_fc   = nn.Linear(h[-1], z_dim)
+        self.mu_fc = nn.Linear(h[-1], z_dim)
+        self.lv_fc = nn.Linear(h[-1], z_dim)
         self.dec_net = make_mlp([z_dim] + list(reversed(h)) + [in_dim])
 
     def encode(self, x):
@@ -174,8 +174,8 @@ class BetaVAE(nn.Module):
         var_per_dim = mus.var(dim=0)
         p = var_per_dim / (var_per_dim.sum() + 1e-8)
         entropy = -(p * torch.log(p + 1e-8)).sum().item()
-        print(f'  Dim variances (top-10): {var_per_dim.topk(min(10, self.z_dim)).values.numpy().round(3)}')
-        print(f'  Variance entropy: {entropy:.4f}  (lower = more axis-aligned)')
+        print(f'Dim variances (top-10): {var_per_dim.topk(min(10, self.z_dim)).values.numpy().round(3)}')
+        print(f'Variance entropy: {entropy:.4f}  (lower = more axis-aligned)')
         return var_per_dim.numpy(), entropy
 
 
@@ -183,12 +183,12 @@ class BetaVAE(nn.Module):
 class CVAE(nn.Module):
     def __init__(self, in_dim, n_class, z_dim=LATENT_DIM, h=HIDDEN_DIMS):
         super().__init__()
-        self.n_class  = n_class
+        self.n_class = n_class
         self.cond_dim = n_class
 
         self.enc_net = make_mlp([in_dim + n_class] + list(h))
-        self.mu_fc   = nn.Linear(h[-1], z_dim)
-        self.lv_fc   = nn.Linear(h[-1], z_dim)
+        self.mu_fc = nn.Linear(h[-1], z_dim)
+        self.lv_fc = nn.Linear(h[-1], z_dim)
         self.dec_net = make_mlp([z_dim + n_class] + list(reversed(h)) + [in_dim])
 
     def encode(self, x, c):
@@ -230,11 +230,11 @@ class ConvVAE(nn.Module):
         with torch.no_grad():
             dummy = self.conv_enc(torch.zeros(1, 1, in_dim))
         raw_flat = dummy.view(1, -1).shape[1]
-        self.ch0  = channels[-1]
+        self.ch0 = channels[-1]
         self.seq0 = raw_flat // self.ch0
         self.flat = self.seq0 * self.ch0
-        self.mu_fc  = nn.Linear(self.flat, z_dim)
-        self.lv_fc  = nn.Linear(self.flat, z_dim)
+        self.mu_fc = nn.Linear(self.flat, z_dim)
+        self.lv_fc = nn.Linear(self.flat, z_dim)
         self.fc_dec = nn.Linear(z_dim, self.flat)
         dec_layers, prev = [], channels[-1]
         for ch in reversed(channels[:-1]):
@@ -254,7 +254,7 @@ class ConvVAE(nn.Module):
         return mu + torch.randn_like(mu) * torch.exp(0.5 * lv) if self.training else mu
 
     def decode(self, z):
-        h   = self.fc_dec(z).view(z.size(0), self.ch0, self.seq0)
+        h = self.fc_dec(z).view(z.size(0), self.ch0, self.seq0)
         out = self.conv_dec(h)
         return F.adaptive_avg_pool1d(out, self.in_dim).squeeze(1)
 
@@ -299,8 +299,8 @@ class MultiModalVAE(nn.Module):
             nn.Linear(lyric_dim, fusion_dim), nn.LayerNorm(fusion_dim), nn.ReLU()
         )
         self.enc_net = make_mlp([2 * fusion_dim] + list(h))
-        self.mu_fc   = nn.Linear(h[-1], z_dim)
-        self.lv_fc   = nn.Linear(h[-1], z_dim)
+        self.mu_fc = nn.Linear(h[-1], z_dim)
+        self.lv_fc = nn.Linear(h[-1], z_dim)
         self.dec_net = make_mlp([z_dim] + list(reversed(h)) + [audio_dim])
 
     def encode(self, audio, lyric):
@@ -357,11 +357,11 @@ class Conv2DDecoder(nn.Module):
                  n_mfcc=N_MFCC_ROWS, time_frames=TIME_FRAMES,
                  channels=CONV_CHANNELS):
         super().__init__()
-        rev_ch   = list(reversed(channels))
+        rev_ch = list(reversed(channels))
         self.ch0 = rev_ch[0]
-        self.h0  = max(1, n_mfcc      // (2 ** len(channels)))
-        self.w0  = max(1, time_frames // (2 ** len(channels)))
-        self.fc  = nn.Linear(z_dim, self.ch0 * self.h0 * self.w0)
+        self.h0 = max(1, n_mfcc      // (2 ** len(channels)))
+        self.w0 = max(1, time_frames // (2 ** len(channels)))
+        self.fc = nn.Linear(z_dim, self.ch0 * self.h0 * self.w0)
         layers, in_ch = [], rev_ch[0]
         for out_ch in rev_ch[1:]:
             layers += [
@@ -370,11 +370,11 @@ class Conv2DDecoder(nn.Module):
             ]
             in_ch = out_ch
         layers.append(nn.ConvTranspose2d(in_ch, 1, kernel_size=4, stride=2, padding=1))
-        self.deconv   = nn.Sequential(*layers)
+        self.deconv = nn.Sequential(*layers)
         self.out_size = (n_mfcc, time_frames)
 
     def forward(self, z):
-        h   = self.fc(z).view(z.size(0), self.ch0, self.h0, self.w0)
+        h = self.fc(z).view(z.size(0), self.ch0, self.h0, self.w0)
         out = self.deconv(h)
         out = F.adaptive_avg_pool2d(out, self.out_size)
         return out.view(z.size(0), -1)
@@ -389,9 +389,9 @@ class Conv2DVAE(nn.Module):
     def __init__(self, n_mfcc=N_MFCC_ROWS, time_frames=TIME_FRAMES,
                  z_dim=LATENT_DIM, channels=CONV_CHANNELS):
         super().__init__()
-        self.n_mfcc      = n_mfcc
+        self.n_mfcc = n_mfcc
         self.time_frames = time_frames
-        self.flat_dim    = n_mfcc * time_frames
+        self.flat_dim = n_mfcc * time_frames
         self.enc = Conv2DEncoder(n_mfcc, time_frames, z_dim, channels)
         self.dec = Conv2DDecoder(z_dim, self.enc.flat_dim, n_mfcc, time_frames, channels)
 
@@ -405,9 +405,9 @@ class Conv2DVAE(nn.Module):
         return mu + torch.randn_like(mu) * torch.exp(0.5 * lv) if self.training else mu
 
     def forward(self, x):
-        x2d    = self._to_2d(x)
+        x2d = self._to_2d(x)
         mu, lv = self.enc(x2d)
-        z      = self.reparameterize(mu, lv)
+        z = self.reparameterize(mu, lv)
         return self.dec(z), mu, lv, z
 
     def get_latent(self, x):
@@ -428,10 +428,10 @@ class HybridConvVAE(nn.Module):
                  n_mfcc=N_MFCC_ROWS, time_frames=TIME_FRAMES,
                  channels=CONV_CHANNELS, fusion_dim=FUSION_DIM):
         super().__init__()
-        self.n_mfcc      = n_mfcc
+        self.n_mfcc = n_mfcc
         self.time_frames = time_frames
-        self.conv_dim    = n_mfcc * time_frames   # 7680 = split point
-        self.lyric_dim   = lyric_dim
+        self.conv_dim = n_mfcc * time_frames   # 7680 = split point
+        self.lyric_dim = lyric_dim
 
         # Conv2D encoder
         enc_layers, in_ch = [], 1
@@ -443,7 +443,7 @@ class HybridConvVAE(nn.Module):
             in_ch = out_ch
         self.conv_enc = nn.Sequential(*enc_layers)
         with torch.no_grad():
-            dummy          = torch.zeros(1, 1, n_mfcc, time_frames)
+            dummy = torch.zeros(1, 1, n_mfcc, time_frames)
             self.conv_flat = self.conv_enc(dummy).view(1, -1).shape[1]
 
         # Lyric projection -> same width as conv_flat for balanced fusion
@@ -462,10 +462,10 @@ class HybridConvVAE(nn.Module):
         self.lv_fc = nn.Linear(fusion_dim, z_dim)
 
         # Conv2D decoder (mirrors encoder)
-        rev_ch      = list(reversed(channels))
-        self.ch0    = rev_ch[0]
-        self.h0     = max(1, n_mfcc      // (2 ** len(channels)))
-        self.w0     = max(1, time_frames // (2 ** len(channels)))
+        rev_ch = list(reversed(channels))
+        self.ch0 = rev_ch[0]
+        self.h0 = max(1, n_mfcc      // (2 ** len(channels)))
+        self.w0 = max(1, time_frames // (2 ** len(channels)))
         self.fc_dec = nn.Linear(z_dim, self.ch0 * self.h0 * self.w0)
         dec_layers, in_ch = [], rev_ch[0]
         for out_ch in rev_ch[1:]:
@@ -484,7 +484,7 @@ class HybridConvVAE(nn.Module):
         return x
 
     def encode(self, x_conv, x_lyric):
-        h_conv  = self.conv_enc(self._to_2d(x_conv)).view(x_conv.size(0), -1)
+        h_conv = self.conv_enc(self._to_2d(x_conv)).view(x_conv.size(0), -1)
         h_lyric = self.lyric_proj(x_lyric)
         h_fused = self.fusion(torch.cat([h_conv, h_lyric], dim=1))
         return self.mu_fc(h_fused), self.lv_fc(h_fused)
@@ -494,14 +494,14 @@ class HybridConvVAE(nn.Module):
         return mu + torch.randn_like(mu) * torch.exp(0.5 * lv) if self.training else mu
 
     def decode(self, z):
-        h   = self.fc_dec(z).view(z.size(0), self.ch0, self.h0, self.w0)
+        h = self.fc_dec(z).view(z.size(0), self.ch0, self.h0, self.w0)
         out = self.conv_dec(h)
         out = F.adaptive_avg_pool2d(out, self.out_size)
         return out.view(z.size(0), -1)
 
     def forward(self, x_conv, x_lyric):
         mu, lv = self.encode(x_conv, x_lyric)
-        z      = self.reparameterize(mu, lv)
+        z = self.reparameterize(mu, lv)
         return self.decode(z), mu, lv, z
 
     def get_latent(self, x_conv, x_lyric):
@@ -518,25 +518,25 @@ def train_model(X_sc, model, y_onehot=None,
     """
     Unified training loop for all model types.
 
-    model_type : 'vae' | 'ae' | 'cvae' | 'multimodal' | 'hybrid_conv'
-    audio_dim  : required when model_type='multimodal'
+    model_type: 'vae' | 'ae' | 'cvae' | 'multimodal' | 'hybrid_conv'
+    audio_dim: required when model_type='multimodal'
 
     INPUT CONTRACT per model_type:
       'vae' on MLPVAE/BetaVAE/ConvVAE  -> X_sc (StandardScaler audio, 65-dim)
-      'vae' on Conv2DVAE                -> X_conv2d = normalize_for_conv2d(X_raw_2d) (7680-dim)
-      'ae'                              -> X_sc (65-dim)
-      'cvae'                            -> X_sc (65-dim) + y_onehot
-      'multimodal'                      -> X_multimodal = np.hstack([X_sc, X_lyric_l2]) (193-dim)
-      'hybrid_conv'                     -> X_hybrid_conv = np.hstack([X_conv2d, X_lyric_l2]) (7808-dim)
-      'vae' on MLPVAE for Hybrid-MLP    -> X_hybrid (L2 audio || L2 lyrics) (193-dim)
+      'vae' on Conv2DVAE -> X_conv2d = normalize_for_conv2d(X_raw_2d) (7680-dim)
+      'ae' -> X_sc (65-dim)
+      'cvae' -> X_sc (65-dim) + y_onehot
+      'multimodal' -> X_multimodal = np.hstack([X_sc, X_lyric_l2]) (193-dim)
+      'hybrid_conv' -> X_hybrid_conv = np.hstack([X_conv2d, X_lyric_l2]) (7808-dim)
+      'vae' on MLPVAE for Hybrid-MLP -> X_hybrid (L2 audio || L2 lyrics) (193-dim)
     """
     model = model.to(DEVICE)
-    opt   = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    opt = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     sched = optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
 
-    X_t   = torch.FloatTensor(X_sc)
-    N     = len(X_t)
-    idx   = torch.randperm(N, generator=torch.Generator().manual_seed(SEED))
+    X_t = torch.FloatTensor(X_sc)
+    N = len(X_t)
+    idx = torch.randperm(N, generator=torch.Generator().manual_seed(SEED))
     split = int(0.9 * N)
     tr_idx, va_idx = idx[:split], idx[split:]
 
@@ -549,10 +549,10 @@ def train_model(X_sc, model, y_onehot=None,
     tr_loader = DataLoader(make_ds(tr_idx), batch_size=batch_size, shuffle=True,  drop_last=False)
     va_loader = DataLoader(make_ds(va_idx), batch_size=batch_size, shuffle=False, drop_last=False)
 
-    best_val   = float('inf')
+    best_val = float('inf')
     best_state = None
-    patience   = 0
-    history    = []
+    patience = 0
+    history = []
 
     def _forward(batch):
         bx = batch[0].to(DEVICE)
@@ -606,20 +606,20 @@ def train_model(X_sc, model, y_onehot=None,
         history.append((tr_avg, va_avg, current_lr))
 
         if va_avg < best_val:
-            best_val   = va_avg
+            best_val = va_avg
             best_state = copy.deepcopy(model.state_dict())
-            patience   = 0
+            patience = 0
         else:
             patience += 1
 
         if verbose and (epoch % 25 == 0 or epoch == 1):
-            print(f'    Ep {epoch:3d}/{epochs}  '
+            print(f'Ep {epoch:3d}/{epochs}  '
                   f'train={tr_avg:.4f}  val={va_avg:.4f}  '
                   f'lr={current_lr:.2e}  patience={patience}/{EARLY_STOP_PATIENCE}')
 
         if patience >= EARLY_STOP_PATIENCE:
             if verbose:
-                print(f'    Early stop at epoch {epoch}  (best val={best_val:.4f})')
+                print(f' Early stop at epoch {epoch}  (best val={best_val:.4f})')
             break
 
     model.load_state_dict(best_state)
@@ -630,7 +630,7 @@ def extract_latent(model, X_sc, batch_size=BATCH_SIZE,
                    model_type='vae', audio_dim=None):
     """Extract latent mu vectors. model_type matches train_model contract."""
     model.eval()
-    X_t    = torch.FloatTensor(X_sc)
+    X_t = torch.FloatTensor(X_sc)
     Z_list = []
     with torch.no_grad():
         for i in range(0, len(X_t), batch_size):
@@ -647,7 +647,7 @@ def extract_latent(model, X_sc, batch_size=BATCH_SIZE,
 
 
 print('vae.py loaded')
-print('   Architectures: MLPVAE | BetaVAE | CVAE | ConvVAE | Autoencoder')
-print('   Conv2DVAE | HybridConvVAE | MultiModalVAE')
-print('   Engine: train_model() | extract_latent()')
-print(f'   Device: {DEVICE}')
+print('Architectures: MLPVAE | BetaVAE | CVAE | ConvVAE | Autoencoder')
+print('Conv2DVAE | HybridConvVAE | MultiModalVAE')
+print('Engine: train_model() | extract_latent()')
+print(f'Device: {DEVICE}')
