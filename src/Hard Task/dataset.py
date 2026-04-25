@@ -5,12 +5,6 @@ Audio feature extraction (65-dim flat + 7680-dim 2D MFCC),
 real lyrics pipeline (Genius API + gaanesuno.com),
 multi-modal feature builder, dataset downloading (GTZAN/Kaggle/yt-dlp),
 and full dataset loading for all three datasets.
-
-Step 5  → Real Lyrics Pipeline
-Step 6  → Multi-Modal Feature Builder
-Step 7  → Audio Feature Extraction + Bangla Dataset Builder
-Step 11 → Download GTZAN Dataset
-Step 12 → Build All Dataset Arrays
 """
 
 import os
@@ -38,7 +32,7 @@ from vae import (AUDIO_FEAT_DIM, MFCC_2D_DIM, N_MFCC, N_MFCC_ROWS,
 
 warnings.filterwarnings('ignore')
 
-# ── Dataset directories ────────────────────────────────────────────────────────
+# Dataset directories
 GTZAN_DIR      = '/content/gtzan'
 BANGLAGITI_DIR = '/content/banglagiti'
 BMGCD_DIR      = '/content/bmgcd'
@@ -47,12 +41,12 @@ OUTPUT_DIR     = '/content/vae_combined_outputs'
 for d in [GTZAN_DIR, BANGLAGITI_DIR, BMGCD_DIR, BANGLA_YT_DIR, OUTPUT_DIR]:
     os.makedirs(d, exist_ok=True)
 
-# ── Genius / Lyrics config ─────────────────────────────────────────────────────
+# Genius / Lyrics config
 GENIUS_TOKEN = os.getenv('GENIUS_TOKEN', 'P_idh3O0SAtctPm4mwZZObR0jkagRyOcTYcTAO89DYHfo5auQF6o0AINS63JUx0O')
 LYRICS_CACHE = '/content/lyrics_cache'
 os.makedirs(LYRICS_CACHE, exist_ok=True)
 
-# ── Dataset config ─────────────────────────────────────────────────────────────
+# Dataset config
 N_PER_GENRE             = 20
 MIN_SAMPLES_FOR_METRICS = 30
 N_BANGLA_PER_GENRE      = 20
@@ -73,13 +67,9 @@ BMGCD_QUERIES_YT = {
     'Rabindra':  'rabindra sangeet tagore',
 }
 
-# ── Neutral fallback (no genre vocabulary, no label leakage) ──────────────────
+# Neutral fallback (no genre vocabulary, no label leakage)
 LYRIC_FALLBACK = 'music sound audio rhythm melody beat instrument song'
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 5 — Real Lyrics Pipeline (Genius API + gaanesuno.com)
-# ════════════════════════════════════════════════════════════════════════════
 
 def _sanitize(text):
     return re.sub(r'[\\/*?:"<>|]', '', text).strip()[:80]
@@ -111,7 +101,7 @@ def _parse_title_artist(filename):
         return parts[1].strip(), parts[0].strip()
     return base.strip(), None
 
-# ── Genius API (English) ───────────────────────────────────────────────────────
+# Genius API (English)
 _genius_client = None
 
 def _get_genius():
@@ -155,7 +145,7 @@ def fetch_english_lyrics(filename, genre, retries=2):
             time.sleep(2 ** attempt)
     return None
 
-# ── gaanesuno.com scraper (Bangla) ─────────────────────────────────────────────
+# gaanesuno.com scraper (Bangla)
 HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 def _scrape_gaanesuno(title, artist=None):
@@ -207,10 +197,6 @@ def fetch_lyrics(filename, genre, language):
         return fetch_bangla_lyrics(filename, genre)
     return None
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 6 — Multi-Modal Feature Builder
-# ════════════════════════════════════════════════════════════════════════════
 
 def make_multimodal(X_audio_sc, records, lyric_dim=LYRIC_DIM):
     """
@@ -265,10 +251,6 @@ def make_genre_onehot(y_labels, le):
     idx = le.transform(y_labels)
     return np.eye(len(le.classes_), dtype=np.float32)[idx]
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 7 — Audio Feature Extraction + Bangla Dataset Builder
-# ════════════════════════════════════════════════════════════════════════════
 
 def extract_audio_features(fpath, sr=22050, duration=30, n_mfcc=20):
     """
@@ -341,7 +323,7 @@ def download_kaggle_dataset(slug, dest_dir):
     if not os.path.exists(kaggle_json):
         print(f'  WARNING: kaggle.json not found — cannot download {slug}.')
         return None
-    print(f'  Downloading Kaggle: {slug} …')
+    print(f'  Downloading Kaggle: {slug} ...')
     try:
         result = subprocess.run(
             ['kaggle', 'datasets', 'download', '-d', slug, '-p', dest_dir, '--unzip'],
@@ -388,7 +370,7 @@ def download_bangla_yt(genre, query, n=N_BANGLA_PER_GENRE):
     if len(existing) >= n:
         print(f'  {genre}: {len(existing)} files cached.')
         return existing[:n]
-    print(f'  yt-dlp {genre}: fetching up to {n} tracks …')
+    print(f'  yt-dlp {genre}: fetching up to {n} tracks ...')
     cmd = [
         'yt-dlp', f'ytsearch{n}:{query}',
         '--extract-audio', '--audio-format', 'wav', '--audio-quality', '5',
@@ -406,10 +388,6 @@ def download_bangla_yt(genre, query, n=N_BANGLA_PER_GENRE):
     print(f'  {len(files)} files downloaded for {genre}')
     return files
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 11 — Download GTZAN Dataset
-# ════════════════════════════════════════════════════════════════════════════
 
 def _stream_dl(url, dest, desc=''):
     r = requests.get(url, stream=True, timeout=600)
@@ -440,7 +418,7 @@ def download_gtzan():
         existing_wav = glob.glob(f'{GTZAN_DIR}/**/*.wav', recursive=True)
 
     if len(existing_wav) >= 900:
-        print(f'✅ GTZAN cached: {len(existing_wav)} .wav files.')
+        print(f'GTZAN cached: {len(existing_wav)} .wav files.')
         GTZAN_AUDIO, _ = _resolve_gtzan_audio(GTZAN_DIR)
         return GTZAN_AUDIO
 
@@ -455,7 +433,7 @@ def download_gtzan():
 
     for url in GTZAN_MIRRORS:
         try:
-            print(f'⬇️  Trying: {url}')
+            print(f'Trying: {url}')
             _stream_dl(url, GTZAN_TAR, desc='GTZAN')
             if os.path.getsize(GTZAN_TAR) < 10_000_000:
                 print('  File too small — likely error page, skipping.')
@@ -465,7 +443,7 @@ def download_gtzan():
             print(f'  Mirror failed: {e}')
 
     if not downloaded_via_tar:
-        print('  All HTTP mirrors failed — trying Kaggle …')
+        print('  All HTTP mirrors failed — trying Kaggle ...')
         r2 = subprocess.run(
             ['kaggle', 'datasets', 'download', '-d',
              'andradaolteanu/gtzan-dataset-music-genre-classification',
@@ -484,7 +462,7 @@ def download_gtzan():
             )
 
     if downloaded_via_tar and os.path.exists(GTZAN_TAR):
-        print('📦 Extracting GTZAN …')
+        print('Extracting GTZAN ...')
         with tarfile.open(GTZAN_TAR, 'r:gz') as tf:
             for m in tqdm(tf.getmembers(), desc='Extracting', unit='file', ncols=80):
                 tf.extract(m, GTZAN_DIR)
@@ -493,13 +471,9 @@ def download_gtzan():
     if len(existing_wav) < 900:
         print(f'  WARNING: only {len(existing_wav)} .wav files found.')
     else:
-        print(f'✅ GTZAN ready: {len(existing_wav)} .wav files')
+        print(f'GTZAN ready: {len(existing_wav)} .wav files')
     return GTZAN_AUDIO
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 12 — Build All Dataset Arrays
-# ════════════════════════════════════════════════════════════════════════════
 
 def make_records(paths, y_labels, lang_labels):
     return [{'file': p, 'genre': g, 'language': l}
@@ -520,7 +494,7 @@ def build_all_datasets(gtzan_audio_dir=None):
     """
     FEAT_DIM = AUDIO_FEAT_DIM    # 65
 
-    # ── GTZAN ─────────────────────────────────────────────────────────────────
+    # GTZAN
     if gtzan_audio_dir is None:
         gtzan_audio_dir = download_gtzan()
 
@@ -544,14 +518,14 @@ def build_all_datasets(gtzan_audio_dir=None):
             paths_gtzan.append(fpath); gc_g[genre] += 1
 
     if len(X_gtzan) == 0:
-        raise RuntimeError('GTZAN: no features extracted. Check Step 11 download.')
+        raise RuntimeError('GTZAN: no features extracted. Check download.')
     X_gtzan    = np.array(X_gtzan,    dtype=np.float32)
     X_gtzan_2d = np.array(X_gtzan_2d, dtype=np.float32)
     y_gtzan    = np.array(y_gtzan)
     lang_gtzan = np.array(lang_gtzan)
-    print(f'✅ GTZAN : {X_gtzan.shape} | 2D: {X_gtzan_2d.shape} | Genres: {dict(Counter(y_gtzan))}')
+    print(f'GTZAN: {X_gtzan.shape} | 2D: {X_gtzan_2d.shape} | Genres: {dict(Counter(y_gtzan))}')
 
-    # ── BanglaGITI ────────────────────────────────────────────────────────────
+    # BanglaGITI
     print('\nLoading BanglaGITI ...')
     bg_dir = download_kaggle_dataset('priyanjanasarkar/banglagiti', BANGLAGITI_DIR)
     X_bg, X_bg_2d, y_bg, lang_bg, paths_bg = [], [], [], [], []
@@ -590,9 +564,9 @@ def build_all_datasets(gtzan_audio_dir=None):
         X_bg    = np.array(X_bg,    dtype=np.float32)
         X_bg_2d = np.array(X_bg_2d, dtype=np.float32)
         y_bg    = np.array(y_bg); lang_bg = np.array(lang_bg)
-        print(f'✅ BanglaGITI: {X_bg.shape} | Genres: {dict(Counter(y_bg))}')
+        print(f'BanglaGITI: {X_bg.shape} | Genres: {dict(Counter(y_bg))}')
 
-    # ── BMGCD ─────────────────────────────────────────────────────────────────
+    # BMGCD
     print('\nLoading BMGCD ...')
     bm_dir = download_kaggle_dataset(
         'mdimranhassan/bangla-music-genre-classification', BMGCD_DIR)
@@ -632,20 +606,20 @@ def build_all_datasets(gtzan_audio_dir=None):
         X_bm    = np.array(X_bm,    dtype=np.float32)
         X_bm_2d = np.array(X_bm_2d, dtype=np.float32)
         y_bm    = np.array(y_bm); lang_bm = np.array(lang_bm)
-        print(f'✅ BMGCD: {X_bm.shape} | Genres: {dict(Counter(y_bm))}')
+        print(f'BMGCD: {X_bm.shape} | Genres: {dict(Counter(y_bm))}')
 
-    # ── Records for make_multimodal() ─────────────────────────────────────────
+    # Records for make_multimodal()
     records_gtzan = make_records(paths_gtzan, y_gtzan, lang_gtzan)
     records_bg    = make_records(paths_bg,    y_bg,    lang_bg)
     records_bm    = make_records(paths_bm,    y_bm,    lang_bm)
 
-    # ── Fit shared scaler on all combined audio features ──────────────────────
+    # Fit shared scaler on all combined audio features
     _parts = [X for X in [X_gtzan, X_bg, X_bm] if len(X) > 0]
     X_all_for_scaler = np.vstack(_parts).astype(np.float32)
     scaler_all = StandardScaler().fit(X_all_for_scaler)
     print(f'\nscaler_all fitted on {X_all_for_scaler.shape[0]} samples (all datasets combined)')
 
-    # ── Summary ───────────────────────────────────────────────────────────────
+    # Summary
     print()
     print('=' * 60)
     print('  DATASET SUMMARY')
@@ -663,8 +637,3 @@ def build_all_datasets(gtzan_audio_dir=None):
             X_bg,    X_bg_2d,    y_bg,    lang_bg,    paths_bg,    records_bg,
             X_bm,    X_bm_2d,    y_bm,    lang_bm,    paths_bm,    records_bm,
             scaler_all)
-
-
-print('✅ dataset.py loaded')
-print(f'   extract_audio_features: {AUDIO_FEAT_DIM}-dim')
-print(f'   extract_mfcc_2d       : {MFCC_2D_DIM}-dim  (MFCC+Δ+Δ²×{TIME_FRAMES})')

@@ -5,18 +5,6 @@ Multi-algorithm clustering engine (KMeans, Agglomerative, DBSCAN),
 elbow analysis, full experiment pipeline across all 9 models + PCA + Raw,
 and all visualisation functions (t-SNE, UMAP, genre/language plots,
 DBSCAN analysis, cluster composition, language separation, training curves).
-
-Step 8  → Multi-Algorithm Clustering Engine
-Step 9  → Elbow Analysis Helper
-Step 13 → Full Experiment Pipeline
-Step 14 → Genre Distribution Overview
-Step 15 → t-SNE + UMAP Dimensionality Reduction
-Step 16 → Latent Space Plots — All Models (UMAP + t-SNE)
-Step 17 → Elbow Method Plots
-Step 18 → DBSCAN Cluster Analysis
-Step 19 → Cluster Composition Heatmap
-Step 20 → English vs Bangla Language Separation
-Step 23 → Training Loss Curves
 """
 
 import os
@@ -53,7 +41,6 @@ from dataset import make_multimodal, make_genre_onehot, OUTPUT_DIR
 
 warnings.filterwarnings('ignore')
 
-# ── Model display labels & colors ──────────────────────────────────────────────
 MODEL_LABELS = {
     'mlp':      'MLP-VAE',
     'conv':     'Conv2D-VAE',
@@ -85,15 +72,10 @@ COLORS_M = {
 LANG_MK  = {'English': 'o', 'Bangla': '^'}
 LANG_COL = {'English': '#1565C0', 'Bangla': '#C62828'}
 
-# Subsets for plot filtering
 Z_KEYS_ALL = ['mlp', 'conv', 'hyb_conv', 'hyb_mlp',
               'beta', 'cvae', 'conv1d', 'ae', 'mm', 'pca', 'raw']
-SKIP_VIS   = {'pca'}   # PCA already low-dim — use first 2 components directly
+SKIP_VIS   = {'pca'}
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 8 — Multi-Algorithm Clustering Engine
-# ════════════════════════════════════════════════════════════════════════════
 
 def _fmt(v):
     """Format metric float for console."""
@@ -114,15 +96,9 @@ def compute_metrics(Z, y_true, cluster_labels):
     """
     Compute all 6 metrics on noise-free subset.
     Returns dict: sil, db, ch, nmi, ari, purity
-
-    ── NB2 technique (exact) ────────────────────────────────────────────────
-    1. Guard degenerate Z (NaN / Inf / collapsed std < 1e-6) BEFORE anything.
-    2. Minimum-sample check: len(Zm) >= 10  (NB2 threshold, not n_cl+1).
-    3. NMI uses average_method='arithmetic'  (NB2 exact call).
     """
     nan = np.nan
 
-    # ── Guard: invalid / degenerate Z ────────────────────────────────────────
     if Z is None or len(Z) == 0:
         return dict(sil=nan, db=nan, ch=nan, nmi=nan, ari=nan, purity=nan)
     if np.any(np.isnan(Z)) or np.any(np.isinf(Z)):
@@ -136,7 +112,6 @@ def compute_metrics(Z, y_true, cluster_labels):
     cm   = cluster_labels[mask]
     n_cl = len(set(cm))
 
-    # ── Guard: too few samples or clusters ───────────────────────────────────
     if n_cl < 2 or len(Zm) < 10:
         return dict(sil=nan, db=nan, ch=nan, nmi=nan, ari=nan, purity=nan)
 
@@ -151,7 +126,6 @@ def compute_metrics(Z, y_true, cluster_labels):
 
 
 def _nan_metrics():
-    """Return an all-NaN metrics dict (used when Z is degenerate)."""
     n = np.nan
     return dict(sil=n, db=n, ch=n, nmi=n, ari=n, purity=n)
 
@@ -159,16 +133,11 @@ def _nan_metrics():
 def run_clustering(Z, y_true, n_class, tag=''):
     """
     Run KMeans, Agglomerative (Ward + Complete), DBSCAN.
-    Returns dict: algo → {labels, metrics, [n_found, noise_pct, eps]}
-
-    ── NB2 technique (exact) ────────────────────────────────────────────────
-    Degenerate Z guard at the TOP — NaN/Inf or collapsed std < 1e-6
-    → returns NaN for all metrics immediately.
+    Returns dict: algo -> {labels, metrics, [n_found, noise_pct, eps]}
     """
     K       = n_class
     results = {}
 
-    # ── NB2 upfront guard ─────────────────────────────────────────────────────
     _degenerate = (
         Z is None or len(Z) == 0
         or np.any(np.isnan(Z)) or np.any(np.isinf(Z))
@@ -186,25 +155,22 @@ def run_clustering(Z, y_true, n_class, tag=''):
         return dict(KMeans=_dummy, Agglomerative_Ward=_dummy,
                     Agglomerative_Complete=_dummy, DBSCAN=_dummy_db)
 
-    # ── K-Means ───────────────────────────────────────────────────────────────
     km = KMeans(n_clusters=K, n_init=KMEANS_NINIT, random_state=42).fit(Z)
     results['KMeans'] = {'labels': km.labels_, 'metrics': compute_metrics(Z, y_true, km.labels_)}
 
-    # ── Agglomerative Ward ────────────────────────────────────────────────────
     agg_w = AgglomerativeClustering(n_clusters=K, linkage='ward').fit(Z)
     results['Agglomerative_Ward'] = {
         'labels': agg_w.labels_,
         'metrics': compute_metrics(Z, y_true, agg_w.labels_),
     }
 
-    # ── Agglomerative Complete ────────────────────────────────────────────────
     agg_c = AgglomerativeClustering(n_clusters=K, linkage='complete').fit(Z)
     results['Agglomerative_Complete'] = {
         'labels': agg_c.labels_,
         'metrics': compute_metrics(Z, y_true, agg_c.labels_),
     }
 
-    # ── DBSCAN — eps auto-tuned via percentile sweep on L2-normalised Z ──────
+    # eps auto-tuned via percentile sweep on L2-normalised Z
     Z_norm    = normalize(Z, norm='l2')
     min_samp  = max(3, len(Z) // (K * 10))
     nbrs      = NearestNeighbors(n_neighbors=min_samp).fit(Z_norm)
@@ -221,7 +187,7 @@ def run_clustering(Z, y_true, n_class, tag=''):
             if best_n == -1 or abs(n_try - K) < abs(best_n - K):
                 best_labels, best_eps, best_n = l_try, eps_try, n_try
 
-    if best_labels is None:   # fallback
+    if best_labels is None:
         best_eps    = float(np.percentile(kth_dists, 50))
         best_labels = DBSCAN(eps=best_eps, min_samples=min_samp).fit_predict(Z_norm)
         best_n      = len(set(best_labels)) - (1 if -1 in best_labels else 0)
@@ -255,15 +221,8 @@ def run_clustering(Z, y_true, n_class, tag=''):
     return results
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 9 — Elbow Analysis Helper
-# ════════════════════════════════════════════════════════════════════════════
-
 def elbow_analysis(Z, k_range=range(2, 16)):
-    """Inertia, silhouette, CH across k values. Returns optimal_k via silhouette argmax.
-
-    ── NB2 technique: same degenerate-Z guards used in run_clustering / compute_metrics.
-    """
+    """Inertia, silhouette, CH across k values. Returns optimal_k via silhouette argmax."""
     k_range = [k for k in k_range if k < len(Z)]
     if len(k_range) < 2:
         print('  elbow_analysis: too few samples.')
@@ -295,10 +254,6 @@ def elbow_analysis(Z, k_range=range(2, 16)):
                 sil_scores=sils, ch_scores=chs, db_scores=dbs, optimal_k=optimal_k)
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 13 — Full Experiment Pipeline
-# ════════════════════════════════════════════════════════════════════════════
-
 def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
                   file_paths=None, X_raw_2d=None, scaler=None):
     """
@@ -319,7 +274,6 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
           f'Genres={len(np.unique(y_labels))}')
     print(SEP)
 
-    # ── Scaling ───────────────────────────────────────────────────────────────
     if scaler is not None:
         X_sc = scaler.transform(X_raw).astype(np.float32)
     else:
@@ -331,7 +285,6 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
     n_class = len(le.classes_)
     pca_dim = min(LATENT_DIM, X_sc.shape[1], X_sc.shape[0] - 1)
 
-    # ── Records for lyrics ────────────────────────────────────────────────────
     records = [
         {'file':     file_paths[i] if file_paths is not None else None,
          'genre':    str(y_labels[i]),
@@ -339,15 +292,13 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
         for i in range(len(X_raw))
     ]
 
-    # ── Hybrid features (audio + lyrics) ─────────────────────────────────────
     print('  Building multi-modal features (audio + real lyrics)...')
     X_hybrid, has_real, X_lyric_l2 = make_multimodal(X_raw, records)
     has_real     = np.array(has_real, dtype=bool)
-    X_hybrid_sc  = X_hybrid.astype(np.float32)   # already L2 normalized
+    X_hybrid_sc  = X_hybrid.astype(np.float32)
     X_multimodal = np.hstack([X_sc, X_lyric_l2]).astype(np.float32)
     C_oh = make_genre_onehot(y_labels, le)
 
-    # ── Conv2D prep ───────────────────────────────────────────────────────────
     if X_raw_2d is not None and len(X_raw_2d) > 0:
         X_conv2d    = normalize_for_conv2d(X_raw_2d)
         X_conv2d    = align_for_conv2d(X_conv2d)
@@ -357,48 +308,43 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
         _has_conv2d = False
         print('  [Conv2DVAE] X_raw_2d not provided — skipping Conv2D branch')
 
-    # ── [1] MLP-VAE ───────────────────────────────────────────────────────────
-    print('  [1/9] MLP-VAE …')
+    print('  [1/9] MLP-VAE ...')
     m_mlp, mlp_hist, mlp_loss = train_model(
         X_sc, MLPVAE(X_sc.shape[1], LATENT_DIM).to(DEVICE), model_type='vae', beta=1.0)
     Z_mlp = extract_latent(m_mlp, X_sc, model_type='vae')
 
-    # ── [2] Conv2D-VAE ────────────────────────────────────────────────────────
     if _has_conv2d:
-        print(f'  [2/9] Conv2DVAE ({N_MFCC_ROWS}×{TIME_FRAMES}) …')
+        print(f'  [2/9] Conv2DVAE ({N_MFCC_ROWS}×{TIME_FRAMES}) ...')
         m_conv, conv_hist, conv_loss = train_model(
             X_conv2d, Conv2DVAE().to(DEVICE), model_type='vae', beta=1.0)
         Z_conv = extract_latent(m_conv, X_conv2d, model_type='vae')
     else:
-        print('  [2/9] Conv2DVAE fallback → MLP-VAE on 65-dim …')
+        print('  [2/9] Conv2DVAE fallback → MLP-VAE on 65-dim ...')
         m_conv, conv_hist, conv_loss = train_model(
             X_sc, MLPVAE(X_sc.shape[1], LATENT_DIM).to(DEVICE), model_type='vae', beta=1.0)
         Z_conv = extract_latent(m_conv, X_sc, model_type='vae')
 
-    # ── [3] HybridConvVAE ─────────────────────────────────────────────────────
     if _has_conv2d:
-        print('  [3/9] HybridConvVAE (end-to-end Conv+Lyric) …')
+        print('  [3/9] HybridConvVAE (end-to-end Conv+Lyric) ...')
         X_hybrid_conv = np.hstack([X_conv2d, X_lyric_l2]).astype(np.float32)
         m_hyb_conv, hyb_conv_hist, hyb_conv_loss = train_model(
             X_hybrid_conv, HybridConvVAE().to(DEVICE),
             model_type='hybrid_conv', beta=1.0)
         Z_hyb_conv = extract_latent(m_hyb_conv, X_hybrid_conv, model_type='hybrid_conv')
     else:
-        print('  [3/9] HybridConvVAE fallback → Hybrid-MLP-VAE …')
+        print('  [3/9] HybridConvVAE fallback → Hybrid-MLP-VAE ...')
         m_hyb_conv, hyb_conv_hist, hyb_conv_loss = train_model(
             X_hybrid_sc, MLPVAE(X_hybrid_sc.shape[1], LATENT_DIM).to(DEVICE),
             model_type='vae', beta=1.0)
         Z_hyb_conv = extract_latent(m_hyb_conv, X_hybrid_sc, model_type='vae')
 
-    # ── [4] Hybrid-MLP-VAE ────────────────────────────────────────────────────
-    print('  [4/9] Hybrid-MLP-VAE …')
+    print('  [4/9] Hybrid-MLP-VAE ...')
     m_hyb_mlp, hyb_mlp_hist, hyb_mlp_loss = train_model(
         X_hybrid_sc, MLPVAE(X_hybrid_sc.shape[1], LATENT_DIM).to(DEVICE),
         model_type='vae', beta=1.0)
     Z_hyb_mlp = extract_latent(m_hyb_mlp, X_hybrid_sc, model_type='vae')
 
-    # ── [5] Beta-VAE sweep ────────────────────────────────────────────────────
-    print(f'  [5/9] Beta-VAE sweep {BETA_VALUES} …')
+    print(f'  [5/9] Beta-VAE sweep {BETA_VALUES} ...')
     beta_sweep      = {}
     best_beta_sil   = -np.inf
     best_beta_val   = BETA_VAE_B
@@ -424,28 +370,24 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
     m_beta    = best_beta_model; Z_beta    = best_beta_Z
     beta_hist = best_beta_hist;  beta_loss = best_beta_loss
 
-    # ── [6] CVAE ──────────────────────────────────────────────────────────────
-    print('  [6/9] CVAE …')
+    print('  [6/9] CVAE ...')
     m_cvae, cvae_hist, cvae_loss = train_model(
         X_sc, CVAE(X_sc.shape[1], n_class, LATENT_DIM).to(DEVICE),
         y_onehot=C_oh, model_type='cvae', beta=1.0)
     Z_cvae = extract_latent(m_cvae, X_sc, model_type='cvae')
 
-    # ── [7] Conv1D-VAE ────────────────────────────────────────────────────────
-    print('  [7/9] Conv1D-VAE …')
+    print('  [7/9] Conv1D-VAE ...')
     m_conv1d, conv1d_hist, conv1d_loss = train_model(
         X_sc, ConvVAE(X_sc.shape[1], LATENT_DIM).to(DEVICE),
         model_type='vae', beta=1.0)
     Z_conv1d = extract_latent(m_conv1d, X_sc, model_type='vae')
 
-    # ── [8] Autoencoder ───────────────────────────────────────────────────────
-    print('  [8/9] Autoencoder …')
+    print('  [8/9] Autoencoder ...')
     m_ae, ae_hist, ae_loss = train_model(
         X_sc, Autoencoder(X_sc.shape[1], LATENT_DIM).to(DEVICE), model_type='ae')
     Z_ae = extract_latent(m_ae, X_sc, model_type='ae')
 
-    # ── [9] MultiModalVAE ─────────────────────────────────────────────────────
-    print('  [9/9] MultiModalVAE …')
+    print('  [9/9] MultiModalVAE ...')
     m_mm, mm_hist, mm_loss = train_model(
         X_multimodal,
         MultiModalVAE(AUDIO_FEAT_DIM, LYRIC_DIM, FUSION_DIM, LATENT_DIM).to(DEVICE),
@@ -453,19 +395,15 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
     Z_mm = extract_latent(m_mm, X_multimodal,
                           model_type='multimodal', audio_dim=AUDIO_FEAT_DIM)
 
-    # ── PCA baseline ──────────────────────────────────────────────────────────
-    print('  [PCA] PCA baseline …')
+    print('  [PCA] PCA baseline ...')
     Z_pca = PCA(n_components=pca_dim, random_state=42).fit_transform(X_sc)
 
-    # ── Raw spectral ──────────────────────────────────────────────────────────
-    print('  [Raw] Direct feature clustering …')
+    print('  [Raw] Direct feature clustering ...')
     cl_raw = run_clustering(X_sc, y_true, n_class, 'Raw-Spectral')
 
-    # ── Elbow analysis ────────────────────────────────────────────────────────
-    print('  Elbow analysis …')
+    print('  Elbow analysis ...')
     elbow = elbow_analysis(Z_mlp, k_range=range(2, min(22, n_class + 5)))
 
-    # ── Clustering on all latent spaces ───────────────────────────────────────
     print('\n  --- Clustering ---')
     cl_mlp      = run_clustering(Z_mlp,      y_true, n_class, 'MLP-VAE')
     cl_conv     = run_clustering(Z_conv,     y_true, n_class, 'Conv2D-VAE')
@@ -509,10 +447,6 @@ def full_pipeline(X_raw, y_labels, lang_labels, dataset_name,
     )
 
 
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 14 — Genre Distribution Overview
-# ════════════════════════════════════════════════════════════════════════════
-
 def plot_genre_distribution(all_results, out_dir=OUTPUT_DIR):
     valid = [(k, v) for k, v in all_results.items() if v is not None]
     fig, axes = plt.subplots(1, len(valid), figsize=(8 * len(valid), 5))
@@ -533,16 +467,12 @@ def plot_genre_distribution(all_results, out_dir=OUTPUT_DIR):
     plt.tight_layout()
     plt.savefig(f'{out_dir}/genre_distribution.png', dpi=130, bbox_inches='tight')
     plt.show()
-    print('✅ Saved: genre_distribution.png')
+    print('Saved: genre_distribution.png')
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 15 — t-SNE + UMAP Dimensionality Reduction
-# ════════════════════════════════════════════════════════════════════════════
 
 def compute_projections(all_results):
     """Compute t-SNE and UMAP for every latent space in all_results. Returns updated all_results."""
-    print('🔄 Computing t-SNE + UMAP (~5-10 min)...')
+    print('Computing t-SNE + UMAP (~5-10 min)...')
     for key, res in all_results.items():
         if res is None: continue
         print(f'  Dataset: {key}'); res['vis'] = {}
@@ -561,13 +491,9 @@ def compute_projections(all_results):
                                   min_dist=0.1, random_state=42).fit_transform(Z),
             }
             print(f'done (N={Z.shape[0]}, perp={perp}, n_nb={n_nb})')
-    print('✅ All reductions done.')
+    print('All reductions done.')
     return all_results
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 16 — Latent Space Plots — All Models (UMAP + t-SNE)
-# ════════════════════════════════════════════════════════════════════════════
 
 def plot_latent_umap(all_results, out_dir=OUTPUT_DIR):
     """Plot UMAP latent space by genre and language for all models."""
@@ -587,7 +513,6 @@ def plot_latent_umap(all_results, out_dir=OUTPUT_DIR):
             cl = res['cl'][zkey]
             ml = MODEL_LABELS[zkey]
 
-            # Left: genre colour
             ax = axes[row, 0]
             for gi in range(n_class):
                 m = res['y_true'] == gi
@@ -602,7 +527,6 @@ def plot_latent_umap(all_results, out_dir=OUTPUT_DIR):
             )
             ax.set_xticks([]); ax.set_yticks([]); ax.grid(alpha=0.15)
 
-            # Right: language separation
             ax = axes[row, 1]
             for lang, color, mk in [('English', '#0D47A1', 'o'), ('Bangla', '#B71C1C', '^')]:
                 lm = res['lang_labels'] == lang
@@ -619,7 +543,7 @@ def plot_latent_umap(all_results, out_dir=OUTPUT_DIR):
         fname = f'{out_dir}/latent_all_{key.lower()}.png'
         plt.savefig(fname, dpi=110, bbox_inches='tight')
         plt.show()
-        print(f'✅ Saved: {fname}')
+        print(f'Saved: {fname}')
 
 
 def plot_latent_tsne(all_results, out_dir=OUTPUT_DIR):
@@ -640,7 +564,6 @@ def plot_latent_tsne(all_results, out_dir=OUTPUT_DIR):
             cl = res['cl'][zkey]
             ml = MODEL_LABELS[zkey]
 
-            # Left: genre
             ax = axes[row, 0]
             for gi in range(n_class):
                 m = res['y_true'] == gi
@@ -655,7 +578,6 @@ def plot_latent_tsne(all_results, out_dir=OUTPUT_DIR):
             )
             ax.set_xticks([]); ax.set_yticks([]); ax.grid(alpha=0.15)
 
-            # Right: language
             ax = axes[row, 1]
             for lang, color, mk in [('English', '#0D47A1', 'o'), ('Bangla', '#B71C1C', '^')]:
                 lm = res['lang_labels'] == lang
@@ -673,12 +595,8 @@ def plot_latent_tsne(all_results, out_dir=OUTPUT_DIR):
         fname = f'{out_dir}/latent_tsne_{key.lower()}.png'
         plt.savefig(fname, dpi=110, bbox_inches='tight')
         plt.show()
-        print(f'✅ Saved: {fname}')
+        print(f'Saved: {fname}')
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 17 — Elbow Method Plots
-# ════════════════════════════════════════════════════════════════════════════
 
 def plot_elbow(all_results, out_dir=OUTPUT_DIR):
     valid_elbow = [(k, v) for k, v in all_results.items() if v is not None and v.get('elbow')]
@@ -710,12 +628,9 @@ def plot_elbow(all_results, out_dir=OUTPUT_DIR):
             ax.legend(fontsize=8); ax.grid(alpha=0.3)
     plt.tight_layout()
     plt.savefig(f'{out_dir}/elbow_plots.png', dpi=130, bbox_inches='tight')
-    plt.show(); print('✅ Saved: elbow_plots.png')
+    plt.show()
+    print('Saved: elbow_plots.png')
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 18 — DBSCAN Cluster Analysis
-# ════════════════════════════════════════════════════════════════════════════
 
 def plot_dbscan(all_results, out_dir=OUTPUT_DIR):
     valid = [(k, v) for k, v in all_results.items() if v is not None]
@@ -746,12 +661,8 @@ def plot_dbscan(all_results, out_dir=OUTPUT_DIR):
     plt.tight_layout()
     plt.savefig(f'{out_dir}/dbscan_analysis.png', dpi=120, bbox_inches='tight')
     plt.show()
-    print('✅ Saved: dbscan_analysis.png')
+    print('Saved: dbscan_analysis.png')
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 19 — Cluster Composition Heatmap
-# ════════════════════════════════════════════════════════════════════════════
 
 def plot_cluster_composition(all_results, out_dir=OUTPUT_DIR):
     ROW1 = ['mlp', 'conv', 'hyb_conv', 'hyb_mlp', 'beta', 'cvae']
@@ -779,12 +690,9 @@ def plot_cluster_composition(all_results, out_dir=OUTPUT_DIR):
         plt.tight_layout()
         fname = f'{out_dir}/cluster_composition_{key.lower()}.png'
         plt.savefig(fname, dpi=130, bbox_inches='tight')
-        plt.show(); print(f'✅ Saved: {fname}')
+        plt.show()
+        print(f'Saved: {fname}')
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 20 — English vs Bangla Language Separation
-# ════════════════════════════════════════════════════════════════════════════
 
 def plot_language_separation(all_results, out_dir=OUTPUT_DIR):
     ROW1 = ['mlp', 'conv', 'hyb_conv', 'hyb_mlp', 'beta', 'cvae']
@@ -816,12 +724,8 @@ def plot_language_separation(all_results, out_dir=OUTPUT_DIR):
     plt.tight_layout()
     plt.savefig(f'{out_dir}/language_separation.png', dpi=150, bbox_inches='tight')
     plt.show()
-    print('✅ Saved: language_separation.png')
+    print('Saved: language_separation.png')
 
-
-# ════════════════════════════════════════════════════════════════════════════
-#  Step 23 — Training Loss Curves
-# ════════════════════════════════════════════════════════════════════════════
 
 def plot_training_curves(all_results, out_dir=OUTPUT_DIR):
     MODEL_COLORS_TRAIN = {
@@ -847,10 +751,5 @@ def plot_training_curves(all_results, out_dir=OUTPUT_DIR):
         ax.legend(fontsize=7, ncol=2); ax.grid(alpha=0.3)
     plt.tight_layout()
     plt.savefig(f'{out_dir}/training_curves.png', dpi=150, bbox_inches='tight')
-    plt.show(); print('✅ Saved: training_curves.png')
-
-
-print('✅ clustering.py loaded')
-print('   Clustering: KMeans | Agglom-Ward | Agglom-Complete | DBSCAN')
-print('   Metrics: Silhouette | DB | CH | NMI | ARI | Purity (6 total)')
-print('   Pipeline: full_pipeline() | compute_projections()')
+    plt.show()
+    print('Saved: training_curves.png')
