@@ -38,12 +38,12 @@ def build_metrics_df(all_results):
                 m = res['cl'][zkey][algo]['metrics']
                 rows_list.append({
                     'Dataset': ds_key, 'Features': zlab, 'Algorithm': algo,
-                    'Silhouette':     round(m['sil'],    4) if not np.isnan(m['sil'])    else np.nan,
-                    'Davies-Bouldin': round(m['db'],     4) if not np.isnan(m['db'])     else np.nan,
-                    'Calinski-H':     round(m['ch'],     1) if not np.isnan(m['ch'])     else np.nan,
-                    'ARI':            round(m['ari'],    4) if not np.isnan(m['ari'])    else np.nan,
-                    'NMI':            round(m['nmi'],    4) if not np.isnan(m['nmi'])    else np.nan,
-                    'Purity':         round(m['purity'], 4) if not np.isnan(m['purity']) else np.nan,
+                    'Silhouette': round(m['sil'], 4) if not np.isnan(m['sil']) else np.nan,
+                    'Davies-Bouldin': round(m['db'], 4) if not np.isnan(m['db']) else np.nan,
+                    'Calinski-H': round(m['ch'], 1) if not np.isnan(m['ch']) else np.nan,
+                    'ARI': round(m['ari'], 4) if not np.isnan(m['ari']) else np.nan,
+                    'NMI': round(m['nmi'], 4) if not np.isnan(m['nmi']) else np.nan,
+                    'Purity': round(m['purity'], 4) if not np.isnan(m['purity']) else np.nan,
                 })
     return pd.DataFrame(rows_list)
 
@@ -51,7 +51,7 @@ def build_metrics_df(all_results):
 def print_metrics_table(df_all, out_dir=OUTPUT_DIR):
     pd.set_option('display.max_rows', 200); pd.set_option('display.width', 200)
     print('=' * 110)
-    print('  FULL METRICS TABLE  |  Sil↑  DB↓  CH↑  ARI↑  NMI↑  Purity↑')
+    print(' FULL METRICS TABLE  |  Sil↑  DB↓  CH↑  ARI↑  NMI↑  Purity↑')
     print('=' * 110)
     print(df_all.to_string(index=False))
     df_all.to_csv(f'{out_dir}/full_metrics.csv', index=False)
@@ -59,14 +59,14 @@ def print_metrics_table(df_all, out_dir=OUTPUT_DIR):
 
 
 def plot_metrics_heatmap(df_all, out_dir=OUTPUT_DIR):
-    feat_order  = list(MODEL_LABELS.values())
+    feat_order = list(MODEL_LABELS.values())
     metrics_cfg = [
-        ('Silhouette',     '↑ higher', 'Blues'),
-        ('Davies-Bouldin', '↓ lower',  'Reds_r'),
-        ('Calinski-H',     '↑ higher', 'Greens'),
-        ('ARI',            '↑ higher', 'Purples'),
-        ('NMI',            '↑ higher', 'Oranges'),
-        ('Purity',         '↑ higher', 'YlOrBr'),
+        ('Silhouette', '↑ higher', 'Blues'),
+        ('Davies-Bouldin', '↓ lower', 'Reds_r'),
+        ('Calinski-H', '↑ higher', 'Greens'),
+        ('ARI', '↑ higher', 'Purples'),
+        ('NMI', '↑ higher', 'Oranges'),
+        ('Purity', '↑ higher', 'YlOrBr'),
     ]
     fig, axes = plt.subplots(2, 3, figsize=(28, 16), squeeze=False)
     fig.suptitle('Clustering Quality Heatmap — All 6 Metrics\nRows=Dataset+Algorithm | Cols=Feature Space',
@@ -88,7 +88,7 @@ def plot_metrics_heatmap(df_all, out_dir=OUTPUT_DIR):
 
 def plot_best_metrics_bar(all_results, out_dir=OUTPUT_DIR):
     feat_cols = list(MODEL_LABELS.values())
-    datasets  = [k for k, v in all_results.items() if v is not None]
+    datasets = [k for k, v in all_results.items() if v is not None]
     x = np.arange(len(datasets))
     w = 0.07
 
@@ -110,19 +110,19 @@ def plot_best_metrics_bar(all_results, out_dir=OUTPUT_DIR):
     fig, axes = plt.subplots(1, 4, figsize=(32, 7))
     fig.suptitle('Best Score per Feature Space (K-Means & Agglom-Ward)', fontsize=13, fontweight='bold')
     for ax, (metric, ylabel) in zip(axes, [
-        ('Best Sil',    'Silhouette (↑)'),
-        ('Best NMI',    'NMI (↑)'),
-        ('Best ARI',    'ARI (↑)'),
+        ('Best Sil', 'Silhouette (↑)'),
+        ('Best NMI', 'NMI (↑)'),
+        ('Best ARI', 'ARI (↑)'),
         ('Best Purity', 'Purity (↑)'),
     ]):
         for fi, feat in enumerate(feat_cols):
             subset = df_sum[df_sum.Features == feat]
-            vals   = [subset[subset.Dataset == d][metric].values[0]
-                      if len(subset[subset.Dataset == d]) > 0 else np.nan
-                      for d in datasets]
+            vals = [subset[subset.Dataset == d][metric].values[0]
+                    if len(subset[subset.Dataset == d]) > 0 else np.nan
+                    for d in datasets]
             offset = fi * w - (len(feat_cols) / 2) * w
-            bars   = ax.bar(x + offset, vals, w, label=feat,
-                            color=COLORS_M.get(feat, '#888888'), alpha=0.88)
+            bars = ax.bar(x + offset, vals, w, label=feat,
+                          color=COLORS_M.get(feat, '#888888'), alpha=0.88)
             for bar, v in zip(bars, vals):
                 if not np.isnan(v):
                     ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.003,
@@ -137,10 +137,10 @@ def plot_best_metrics_bar(all_results, out_dir=OUTPUT_DIR):
 
 def plot_vae_vs_baseline(all_results, out_dir=OUTPUT_DIR):
     vae_keys_delta = [(k, v) for k, v in MODEL_LABELS.items() if k not in ('pca', 'raw')]
-    valid    = [(k, v) for k, v in all_results.items() if v is not None]
+    valid = [(k, v) for k, v in all_results.items() if v is not None]
     datasets = [k for k, _ in valid]
-    x        = np.arange(len(datasets))
-    w        = 0.07
+    x = np.arange(len(datasets))
+    w = 0.07
 
     fig, axes = plt.subplots(1, 2, figsize=(26, 6), squeeze=False)
     fig.suptitle('VAE vs PCA Baseline — Δ Silhouette & Δ NMI (K-Means)\n'
@@ -153,13 +153,13 @@ def plot_vae_vs_baseline(all_results, out_dir=OUTPUT_DIR):
             deltas = []
             for _, res in valid:
                 vae_m = res['cl'].get(zkey, {}).get('KMeans', {}).get('metrics', {})
-                pca_m = res['cl'].get('pca',  {}).get('KMeans', {}).get('metrics', {})
+                pca_m = res['cl'].get('pca', {}).get('KMeans', {}).get('metrics', {})
                 v_val = vae_m.get(metric, np.nan)
                 p_val = pca_m.get(metric, np.nan)
                 deltas.append(v_val - p_val if not (np.isnan(v_val) or np.isnan(p_val)) else np.nan)
             offset = fi * w - (len(vae_keys_delta) / 2) * w
-            bars   = ax.bar(x + offset, deltas, w, label=zlabel,
-                            color=COLORS_M.get(zlabel, '#888888'), alpha=0.85)
+            bars = ax.bar(x + offset, deltas, w, label=zlabel,
+                          color=COLORS_M.get(zlabel, '#888888'), alpha=0.85)
             for bar, v in zip(bars, deltas):
                 if not np.isnan(v):
                     ax.text(bar.get_x() + bar.get_width()/2,
@@ -177,17 +177,17 @@ def plot_vae_vs_baseline(all_results, out_dir=OUTPUT_DIR):
 def plot_disentanglement(all_results, out_dir=OUTPUT_DIR):
     for key, res in all_results.items():
         if res is None: continue
-        Z_mlp  = res['Z']['mlp']
+        Z_mlp = res['Z']['mlp']
         Z_beta = res['Z']['beta']
         Z_cvae = res['Z']['cvae']
         y_true = res['y_true']
-        n_cl   = res['n_class']
-        PAL    = plt.colormaps['tab20'].resampled(n_cl)
+        n_cl = res['n_class']
+        PAL = plt.colormaps['tab20'].resampled(n_cl)
         n_show = min(5, LATENT_DIM)
         best_beta = res.get('best_beta', 4.0)
 
         models_to_show = [
-            (Z_mlp,  'MLP-VAE (baseline)'),
+            (Z_mlp, 'MLP-VAE (baseline)'),
             (Z_beta, f'Beta-VAE (β={best_beta:.1f}, best)'),
             (Z_cvae, 'CVAE (zero-condition)'),
         ]
@@ -229,13 +229,13 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
         print('No valid model found — skipping latent traversal.')
         return
 
-    res     = all_results[_traversal_key]
-    n_dims  = 5
+    res = all_results[_traversal_key]
+    n_dims = 5
     n_steps = 7
     z_range = np.linspace(-3, 3, n_steps)
 
     model_configs = {
-        'mlp':  'MLP-VAE (baseline)',
+        'mlp': 'MLP-VAE (baseline)',
         'beta': f'Beta-VAE (β={res.get("best_beta", "?"):.1f}, best)',
         'cvae': 'CVAE (zero-condition)',
     }
@@ -261,10 +261,10 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
                 with torch.no_grad():
                     if model_key == 'cvae':
                         cond_dim = model_obj.cond_dim
-                        cond     = torch.zeros(1, cond_dim).to(DEVICE)
-                        recon    = model_obj.decode(
-                                       z.unsqueeze(0).to(DEVICE), cond
-                                   ).cpu().numpy().flatten()
+                        cond = torch.zeros(1, cond_dim).to(DEVICE)
+                        recon = model_obj.decode(
+                                    z.unsqueeze(0).to(DEVICE), cond
+                                ).cpu().numpy().flatten()
                     else:
                         recon = model_obj.decode(
                                     z.unsqueeze(0).to(DEVICE)
@@ -280,7 +280,7 @@ def plot_latent_traversal(all_results, out_dir=OUTPUT_DIR):
                      fontsize=12, fontweight='bold')
         plt.tight_layout()
 
-        safe_key  = model_key.replace('/', '_')
+        safe_key = model_key.replace('/', '_')
         save_path = f'{out_dir}/latent_traversal_{safe_key}.png'
         plt.savefig(save_path, dpi=120, bbox_inches='tight')
         plt.show()
@@ -291,34 +291,34 @@ def plot_reconstruction_examples(all_results, out_dir=OUTPUT_DIR):
     rng = np.random.default_rng(SEED)
     for key, res in all_results.items():
         if res is None: continue
-        X_sc   = res['X_sc']
+        X_sc = res['X_sc']
         models = res['models']
         n_show = 5
-        idx    = rng.choice(len(X_sc), min(n_show, len(X_sc)), replace=False)
+        idx = rng.choice(len(X_sc), min(n_show, len(X_sc)), replace=False)
         fig, axes = plt.subplots(len(idx), 3, figsize=(18, len(idx) * 2.8), squeeze=False)
         fig.suptitle(f'Reconstruction Examples — {res["name"]}', fontsize=13, fontweight='bold')
         for row, i in enumerate(idx):
             x_orig = torch.FloatTensor(X_sc[i:i+1]).to(DEVICE)
-            genre  = res['y_labels'][i]
+            genre = res['y_labels'][i]
             for col, (mkey, model) in enumerate([
                 ('MLP-VAE', models['mlp']),
                 ('Beta-VAE', models['beta']),
-                ('CVAE',     models['cvae']),
+                ('CVAE', models['cvae']),
             ]):
                 model.eval()
                 with torch.no_grad():
                     if mkey == 'CVAE':
                         n_cl = res['n_class']
-                        c    = torch.zeros(1, n_cl, device=DEVICE)
+                        c = torch.zeros(1, n_cl, device=DEVICE)
                         c[0, res['le'].transform([genre])[0]] = 1.0
                         recon, _, _, _ = model(x_orig, c)
                     else:
                         recon, _, _, _ = model(x_orig)
-                orig_np  = x_orig.cpu().numpy().flatten()
+                orig_np = x_orig.cpu().numpy().flatten()
                 recon_np = recon.cpu().numpy().flatten()
                 show_dim = min(AUDIO_FEAT_DIM, len(orig_np))
                 ax = axes[row, col]
-                ax.plot(orig_np[:show_dim],  color='#1565C0', lw=1.5,
+                ax.plot(orig_np[:show_dim], color='#1565C0', lw=1.5,
                         label='Original' if row == 0 else None)
                 ax.plot(recon_np[:show_dim], color='#FF5722', lw=1.5, linestyle='--',
                         label='Recon' if row == 0 else None)
@@ -344,13 +344,13 @@ def print_quantitative_analysis(all_results):
         pca_nmi = res['cl']['pca']['KMeans']['metrics']['nmi']
         for zkey, zlab in MODEL_LABELS.items():
             if zkey in ('pca', 'raw') or zkey not in res['cl']: continue
-            m       = res['cl'][zkey]['KMeans']['metrics']
+            m = res['cl'][zkey]['KMeans']['metrics']
             vae_sil = m['sil']; vae_nmi = m['nmi']
             if np.isnan(vae_sil) or np.isnan(pca_sil):
                 print(f'  {ds_key:<12} | {zlab:<20} | Sil: NaN — skipped'); continue
             d_sil = vae_sil - pca_sil; d_nmi = vae_nmi - pca_nmi
-            pct   = d_sil / abs(pca_sil) * 100 if pca_sil != 0 else 0
-            v     = ('BETTER' if d_sil > 0.005 else 'WORSE' if d_sil < -0.005 else 'SIMILAR')
+            pct = d_sil / abs(pca_sil) * 100 if pca_sil != 0 else 0
+            v = ('BETTER' if d_sil > 0.005 else 'WORSE' if d_sil < -0.005 else 'SIMILAR')
             print(f'  {ds_key:<12} | {zlab:<20} | '
                   f'Sil: {vae_sil:.4f} vs PCA {pca_sil:.4f} '
                   f'Δ={d_sil:+.4f}({pct:+.1f}%)  NMI Δ={d_nmi:+.4f}  {v}')
@@ -359,14 +359,14 @@ def print_quantitative_analysis(all_results):
     print('INTERPRETATION')
     print('-' * 70)
     print('BETTER  -> Non-linear encoder captures manifold structure PCA cannot.')
-    print('   When: high-dim data, complex genre boundaries, entangled audio features.')
+    print(' When: high-dim data, complex genre boundaries, entangled audio features.')
     print()
-    print('WORSE   -> Small dataset (VAE overfits), very low-dim data, β too high.')
+    print('WORSE -> Small dataset (VAE overfits), very low-dim data, β too high.')
     print()
-    print('Conv2D-VAE  : captures local time-frequency correlations (delta-stacked MFCC).')
+    print('Conv2D-VAE : captures local time-frequency correlations (delta-stacked MFCC).')
     print('HybridConvVAE: end-to-end Conv2D + lyric fusion — strongest when real lyrics available.')
-    print('Beta-VAE    : disentangled latent → individual dims align with audio factors.')
-    print('CVAE        : genre-aware latent — useful for conditional generation.')
+    print('Beta-VAE : disentangled latent → individual dims align with audio factors.')
+    print('CVAE : genre-aware latent — useful for conditional generation.')
     print('MultiModalVAE: joint audio+lyric encoder, best when lyrics are informative.')
     print()
     print('NMI: symmetric, corrects for cluster size. ARI: corrects for random labelling.')
@@ -374,27 +374,27 @@ def print_quantitative_analysis(all_results):
 
 
 METRICS_INFO = [
-    ('sil',    'Silhouette',     True),
-    ('db',     'Davies-Bouldin', False),
-    ('ch',     'Calinski-H',     True),
-    ('ari',    'ARI',            True),
-    ('nmi',    'NMI',            True),
-    ('purity', 'Purity',         True),
+    ('sil', 'Silhouette', True),
+    ('db', 'Davies-Bouldin', False),
+    ('ch', 'Calinski-H', True),
+    ('ari', 'ARI', True),
+    ('nmi', 'NMI', True),
+    ('purity', 'Purity', True),
 ]
 
 PARADIGMS = [
-    ('vae_best',  'Best-VAE',             '#1565C0'),
-    ('pca',       'PCA + K-Means',         '#B71C1C'),
-    ('ae',        'Autoencoder + K-Means', '#FF8F00'),
-    ('raw',       'Direct Spectral',       '#2E7D32'),
+    ('vae_best', 'Best-VAE', '#1565C0'),
+    ('pca', 'PCA + K-Means', '#B71C1C'),
+    ('ae', 'Autoencoder + K-Means', '#FF8F00'),
+    ('raw', 'Direct Spectral', '#2E7D32'),
 ]
 
 METRIC_LABELS_H2H = {
-    'sil':    'Silhouette (up)',
-    'db':     'Davies-Bouldin (dn)',
-    'ch':     'Calinski-H (up)',
-    'ari':    'ARI (up)',
-    'nmi':    'NMI (up)',
+    'sil': 'Silhouette (up)',
+    'db': 'Davies-Bouldin (dn)',
+    'ch': 'Calinski-H (up)',
+    'ari': 'ARI (up)',
+    'nmi': 'NMI (up)',
     'purity': 'Purity (up)',
 }
 
@@ -427,7 +427,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
 
     # collect results
     comparison_rows = []
-    vae_best_info   = {}
+    vae_best_info = {}
 
     print('=' * 90)
     print('  PARADIGM COMPARISON  |  K-Means  |  All 6 Metrics')
@@ -461,11 +461,11 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
         print(f'    {ds_key:<12} -> {bl}')
 
     # bar chart
-    datasets  = [k for k, v in all_results.items() if v is not None]
-    n_ds      = len(datasets)
-    n_para    = len(PARADIGMS)
-    w         = 0.18
-    x         = np.arange(n_ds)
+    datasets = [k for k, v in all_results.items() if v is not None]
+    n_ds = len(datasets)
+    n_para = len(PARADIGMS)
+    w = 0.18
+    x = np.arange(n_ds)
 
     fig, axes = plt.subplots(2, 3, figsize=(28, 14), squeeze=False)
     fig.suptitle(
@@ -481,8 +481,8 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
                 row = df_cmp[(df_cmp['Dataset'] == ds_key) & (df_cmp['Paradigm'] == p_label)]
                 vals.append(float(row[col].values[0]) if len(row) > 0 else np.nan)
             offset = (fi - n_para / 2 + 0.5) * w
-            bars   = ax.bar(x + offset, vals, w, label=p_label, color=color, alpha=0.85,
-                            edgecolor='white', linewidth=0.5)
+            bars = ax.bar(x + offset, vals, w, label=p_label, color=color, alpha=0.85,
+                          edgecolor='white', linewidth=0.5)
             for bar, v in zip(bars, vals):
                 if not np.isnan(v):
                     ax.text(bar.get_x() + bar.get_width() / 2,
@@ -505,14 +505,14 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     # ranked summary table
     print()
     print('=' * 90)
-    print('  RANKED SUMMARY (rank 1 = best per metric per dataset)')
+    print(' RANKED SUMMARY (rank 1 = best per metric per dataset)')
     print('=' * 90)
 
     rank_rows = []
     for ds_key in datasets:
         sub = df_cmp[df_cmp['Dataset'] == ds_key].copy()
         for col, hb in higher_map.items():
-            vals  = sub[col].values.astype(float)
+            vals = sub[col].values.astype(float)
             order = np.argsort(vals * (-1 if hb else 1))
             ranks = np.empty_like(order)
             ranks[order] = np.arange(1, n_para + 1)
@@ -522,7 +522,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
                     'Metric': col, 'Value': vals[i], 'Rank': ranks[i],
                 })
 
-    df_rank  = pd.DataFrame(rank_rows)
+    df_rank = pd.DataFrame(rank_rows)
     avg_rank = (df_rank.groupby(['Dataset', 'Paradigm'])['Rank']
                        .mean().reset_index()
                        .rename(columns={'Rank': 'Avg Rank (lower=better)'}))
@@ -533,7 +533,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     print()
     print('  Winner (lowest avg rank) per dataset:')
     for ds_key in datasets:
-        row    = pivot_rank.loc[ds_key]
+        row = pivot_rank.loc[ds_key]
         winner = row.idxmin()
         print(f'    {ds_key:<12} -> {winner}  (avg rank {row.min():.2f})')
 
@@ -541,7 +541,7 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     try:
         radar_metric_cols = [METRIC_LABELS_H2H[mk]
                              for mk in ['sil', 'ari', 'nmi', 'purity', 'ch', 'db']]
-        N      = len(radar_metric_cols)
+        N = len(radar_metric_cols)
         angles = [n / float(N) * 2 * np.pi for n in range(N)]
         angles += angles[:1]
 
@@ -554,15 +554,15 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
 
         radar_data = {}
         for _, p_label, _ in PARADIGMS:
-            sub    = df_cmp[df_cmp['Paradigm'] == p_label]
+            sub = df_cmp[df_cmp['Paradigm'] == p_label]
             scores = [float(sub[col].mean()) for col in radar_metric_cols]
             radar_data[p_label] = scores
 
-        all_sc  = np.array(list(radar_data.values()))
+        all_sc = np.array(list(radar_data.values()))
         col_min = all_sc.min(axis=0)
         col_max = all_sc.max(axis=0)
         col_rng = np.where(col_max - col_min < 1e-9, 1.0, col_max - col_min)
-        db_idx  = radar_metric_cols.index(METRIC_LABELS_H2H['db'])
+        db_idx = radar_metric_cols.index(METRIC_LABELS_H2H['db'])
 
         for (_, p_label, color), raw_sc in zip(PARADIGMS, all_sc):
             norm_sc = (raw_sc - col_min) / col_rng
@@ -590,22 +590,15 @@ def paradigm_comparison(all_results, out_dir=OUTPUT_DIR):
     df_cmp.to_csv(f'{out_dir}/paradigm_comparison.csv', index=False)
     print('Saved: paradigm_comparison.csv')
 
-    print()
-    print('INTERPRETATION')
-    print('-' * 70)
-    print('Blue  Best-VAE       : non-linear latent + KL regularisation -> smooth,')
-    print('                       clusterable space. Wins on complex genre boundaries.')
-    print('Red   PCA+K-Means    : fast, interpretable linear baseline.')
-    print('Orange AE+K-Means    : non-linear compression but NO KL.')
-    print('Green  Direct Spect  : K-Means on raw 65-dim features.')
+
 
 
 def print_final_report(all_results):
     SEP = '=' * 80
     print(SEP)
-    print('  ADVANCED MULTI-MODAL VAE CLUSTERING — FINAL REPORT  (Combined Task)')
-    print('  3 Datasets: GTZAN · BanglaGITI · BMGCD')
-    print('  11 Feature Spaces × 4 Algorithms × 6 Metrics | No Synthetic Audio Data')
+    print(' ADVANCED MULTI-MODAL VAE CLUSTERING — FINAL REPORT  (Combined Task)')
+    print(' 3 Datasets: GTZAN · BanglaGITI · BMGCD')
+    print(' 11 Feature Spaces × 4 Algorithms × 6 Metrics | No Synthetic Audio Data')
     print(SEP)
 
     def _f(v):
@@ -631,15 +624,15 @@ def print_final_report(all_results):
     for ds_key, res in all_results.items():
         if res is None: continue
         has_real = res.get('has_real_lyrics', np.array([]))
-        n_real   = int(np.sum(has_real))
-        n_total  = len(res['y_labels'])
-        pct      = 100 * n_real / max(n_total, 1)
+        n_real = int(np.sum(has_real))
+        n_total = len(res['y_labels'])
+        pct = 100 * n_real / max(n_total, 1)
         print(f'  {ds_key:<12}: {n_real:>4}/{n_total} real lyrics ({pct:.1f}%) '
               f'| {n_total - n_real} neutral fallback')
     print()
-    print('  Note: GTZAN lyrics are 100% genre-seed based (numeric filenames = no title).')
-    print('  BanglaGITI/BMGCD: real lyrics scraped where available (gaanesuno.com).')
-    print('  MultiModalVAE uses joint audio+lyric encoder — strongest with real lyrics.')
+    print(' Note: GTZAN lyrics are 100% genre-seed based (numeric filenames = no title).')
+    print(' BanglaGITI/BMGCD: real lyrics scraped where available (gaanesuno.com).')
+    print(' MultiModalVAE uses joint audio+lyric encoder — strongest with real lyrics.')
 
 
 def download_results(out_dir=OUTPUT_DIR):
@@ -650,4 +643,4 @@ def download_results(out_dir=OUTPUT_DIR):
         print('Download started!')
     except ImportError:
         print(f'Zip saved: /content/vae_combined_results.zip')
-        print('   (google.colab not available — running outside Colab)')
+        print(' (google.colab not available — running outside Colab)')

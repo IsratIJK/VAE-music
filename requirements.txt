@@ -21,8 +21,13 @@ audioread>=3.0
 # MIDI processing 
 pretty_midi>=0.2.10
 
-# Audio download (Bangla yt-dlp pipeline)
+# Audio / dataset download
 yt-dlp>=2024.1
+kaggle>=1.6
+
+# Lyrics scraping (Genius API + web scraping)
+lyricsgenius>=3.0
+beautifulsoup4>=4.12
 
 # HTTP downloads
 requests>=2.31
