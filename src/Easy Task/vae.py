@@ -36,7 +36,7 @@ class Encoder(nn.Module):
                 nn.Dropout(0.2)
             ]
             prev = h
-        self.net   = nn.Sequential(*layers)
+        self.net = nn.Sequential(*layers)
         self.mu_fc = nn.Linear(prev, z_dim)
         self.lv_fc = nn.Linear(prev, z_dim)
 
@@ -96,43 +96,43 @@ def train_vae(X_scaled, out_dir='/content',
 
     Parameters
     ----------
-    X_scaled   : np.ndarray  - normalised feature matrix (N, D)
-    out_dir    : str         - directory to save model checkpoint
-    hidden_dims: list        - encoder hidden layer sizes  (default [256, 128])
-    latent_dim : int         - latent space dimensionality
-    batch_size : int         - mini-batch size (drop_last=True for BatchNorm safety)
-    epochs     : int         - number of training epochs
-    lr         : float       - initial AdamW learning rate
-    beta       : float       - KL weight (beta-VAE; 1.0 = standard VAE)
+    X_scaled : np.ndarray  - normalised feature matrix (N, D)
+    out_dir : str - directory to save model checkpoint
+    hidden_dims: list - encoder hidden layer sizes  (default [256, 128])
+    latent_dim : int - latent space dimensionality
+    batch_size : int - mini-batch size (drop_last=True for BatchNorm safety)
+    epochs : int - number of training epochs
+    lr : float - initial AdamW learning rate
+    beta : float - KL weight (beta-VAE; 1.0 = standard VAE)
 
     Returns
     -------
-    vae        : trained VAE (best checkpoint loaded)
-    history    : dict with keys 'total', 'recon', 'kl'
-    best_loss  : float
+    vae : trained VAE (best checkpoint loaded)
+    history : dict with keys 'total', 'recon', 'kl'
+    best_loss : float
     """
     if hidden_dims is None:
-        hidden_dims = [256, 128]   # 2 layers suits dataset size (~240 tracks)
+        hidden_dims = [256, 128] # 2 layers suits dataset size (~240 tracks)
 
     INPUT_DIM = X_scaled.shape[1]  # 102 (audio-only)
 
     X_tensor = torch.FloatTensor(X_scaled)
-    loader   = DataLoader(TensorDataset(X_tensor),
+    loader = DataLoader(TensorDataset(X_tensor),
                           batch_size=batch_size, shuffle=True, drop_last=True)
                           # drop_last=True prevents single-sample batches
                           # that crash BatchNorm1d
 
-    vae       = VAE(INPUT_DIM, hidden_dims, latent_dim).to(DEVICE)
+    vae = VAE(INPUT_DIM, hidden_dims, latent_dim).to(DEVICE)
     optimizer = optim.AdamW(vae.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
     total_params = sum(p.numel() for p in vae.parameters())
     print(f'VAE | Params: {total_params:,}')
-    print(f'   {INPUT_DIM} -> {hidden_dims} -> z{latent_dim}')
-    print(f'   beta={beta} | LR={lr} | Batch={batch_size} | Epochs={epochs}')
+    print(f' {INPUT_DIM} -> {hidden_dims} -> z{latent_dim}')
+    print(f' beta={beta} | LR={lr} | Batch={batch_size} | Epochs={epochs}')
 
-    history    = {'total': [], 'recon': [], 'kl': []}
-    best_loss  = float('inf')
+    history = {'total': [], 'recon': [], 'kl': []}
+    best_loss = float('inf')
     best_state = None
 
     for epoch in range(1, epochs + 1):
@@ -159,7 +159,7 @@ def train_vae(X_scaled, out_dir='/content',
             best_state = {k: v.cpu().clone() for k, v in vae.state_dict().items()}
 
         if epoch % 20 == 0 or epoch == 1:
-            print(f'  Epoch {epoch:3d}/{epochs} | Total={at:.4f}  Recon={ar:.4f}  KL={ak:.4f}')
+            print(f' Epoch {epoch:3d}/{epochs} | Total={at:.4f}  Recon={ar:.4f}  KL={ak:.4f}')
 
     print(f'Training done. Best loss: {best_loss:.4f}')
     vae.load_state_dict(best_state)
@@ -170,10 +170,10 @@ def train_vae(X_scaled, out_dir='/content',
     torch.save({
         'model_state': best_state,
         'config': {
-            'input_dim':   INPUT_DIM,
+            'input_dim': INPUT_DIM,
             'hidden_dims': hidden_dims,
-            'latent_dim':  latent_dim,
-            'beta':        beta,
+            'latent_dim': latent_dim,
+            'beta': beta,
         },
     }, f'{out_dir}/vae_music_model.pt')
     print(f'Checkpoint saved -> {out_dir}/vae_music_model.pt')
@@ -211,10 +211,10 @@ def extract_latent(vae, X_scaled, latent_dim, batch_size=256):
 
     Parameters
     ----------
-    vae        : trained VAE
-    X_scaled   : np.ndarray - normalised feature matrix (N, D)
-    latent_dim : int        - for the print statement
-    batch_size : int        - inference batch size
+    vae : trained VAE
+    X_scaled : np.ndarray - normalised feature matrix (N, D)
+    latent_dim : int - for the print statement
+    batch_size : int - inference batch size
 
     Returns
     -------

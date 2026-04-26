@@ -28,7 +28,7 @@ def compute_metrics(Z, labels_vae, Z_pca, labels_pca):
     Returns
     -------
     results : pd.DataFrame  — formatted metric table
-    metrics : dict          — raw float values for the report
+    metrics : dict — raw float values for the report
     """
     sil_vae = silhouette_score(Z, labels_vae)
     sil_pca = silhouette_score(Z_pca, labels_pca)
@@ -99,15 +99,15 @@ def print_final_report(df, X_scaled, le_genre, metrics,
 
     Parameters
     ----------
-    df         : pd.DataFrame — full dataset with language column
-    X_scaled   : np.ndarray   — scaled feature matrix (for shape)
-    le_genre   : LabelEncoder
-    metrics    : dict         — from compute_metrics()
-    INPUT_DIM  : int
-    HIDDEN_DIMS: list
+    df : pd.DataFrame — full dataset with language column
+    X_scaled : np.ndarray — scaled feature matrix (for shape)
+    le_genre : LabelEncoder
+    metrics : dict — from compute_metrics()
+    INPUT_DIM : int
+    HIDDEN_DIMS : list
     LATENT_DIM : int
-    K          : int          — number of clusters used
-    best_loss  : float
+    K : int — number of clusters used
+    best_loss : float
     """
     sil_vae = metrics['sil_vae']
     sil_pca = metrics['sil_pca']
@@ -117,22 +117,22 @@ def print_final_report(df, X_scaled, le_genre, metrics,
     print('VAE Music Clustering — FINAL REPORT (Hybrid Dataset)')
     print()
     print('DATASET')
-    print(f'  English  : {(df["language"]=="English").sum()}  (GTZAN genres)')
-    print(f'  Bangla   : {(df["language"]=="Bangla").sum()}  (Baul/Folk/Rabindra/Pop/Classical)')
-    print(f'  Total    : {len(df)}')
-    print(f'  Features : {X_scaled.shape[1]}  (MFCC+Chroma+Spectral+ZCR+RMS)')
-    print(f'  Genres   : {len(le_genre.classes_)}')
+    print(f' English : {(df["language"]=="English").sum()}  (GTZAN genres)')
+    print(f' Bangla : {(df["language"]=="Bangla").sum()}  (Baul/Folk/Rabindra/Pop/Classical)')
+    print(f' Total : {len(df)}')
+    print(f' Features : {X_scaled.shape[1]}  (MFCC+Chroma+Spectral+ZCR+RMS)')
+    print(f' Genres : {len(le_genre.classes_)}')
     print()
     print('VAE ARCHITECTURE')
-    print(f'  Input    : {INPUT_DIM}')
-    print(f'  Hidden   : {HIDDEN_DIMS}')
-    print(f'  Latent   : {LATENT_DIM}')
-    print(f'  Best loss: {best_loss:.4f}')
+    print(f' Input : {INPUT_DIM}')
+    print(f' Hidden : {HIDDEN_DIMS}')
+    print(f' Latent : {LATENT_DIM}')
+    print(f' Best loss: {best_loss:.4f}')
     print()
     print(f'EVALUATION (K = {K})')
-    print(f'  {"":20s}  {"VAE+KMeans":>12}  {"PCA+KMeans":>12}  Winner')
-    print(f'  {"Silhouette Score":20s}  {sil_vae:>12.4f}  {sil_pca:>12.4f}  {"VAE" if sil_vae > sil_pca else "PCA"}')
-    print(f'  {"Calinski-Harabasz":20s}  {ch_vae:>12.1f}  {ch_pca:>12.1f}  {"VAE" if ch_vae > ch_pca else "PCA"}')
+    print(f' {"":20s}  {"VAE+KMeans":>12}  {"PCA+KMeans":>12}  Winner')
+    print(f' {"Silhouette Score":20s}  {sil_vae:>12.4f}  {sil_pca:>12.4f}  {"VAE" if sil_vae > sil_pca else "PCA"}')
+    print(f' {"Calinski-Harabasz":20s}  {ch_vae:>12.1f}  {ch_pca:>12.1f}  {"VAE" if ch_vae > ch_pca else "PCA"}')
     print()
     print('OUTPUT FILES SAVED')
     for fname in [
@@ -158,12 +158,12 @@ def save_all_results(df, Z, results, scaler,
 
     Parameters
     ----------
-    df         : pd.DataFrame — must have 'cluster_vae' and 'cluster_pca' columns
-    Z          : np.ndarray   — latent representations
-    results    : pd.DataFrame — metrics table from compute_metrics()
-    scaler     : StandardScaler — fitted scaler
-    best_state : dict         — VAE state_dict (CPU tensors)
-    out_dir    : str          — base /content directory
+    df : pd.DataFrame — must have 'cluster_vae' and 'cluster_pca' columns
+    Z : np.ndarray — latent representations
+    results : pd.DataFrame — metrics table from compute_metrics()
+    scaler : StandardScaler — fitted scaler
+    best_state : dict — VAE state_dict (CPU tensors)
+    out_dir : str — base /content directory
     """
     import torch
 

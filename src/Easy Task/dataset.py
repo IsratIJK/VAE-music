@@ -28,9 +28,9 @@ warnings.filterwarnings('ignore')
 # Constants
 
 # Actual dim breakdown: 40+13+12+8+6+9+3+2+9 = 102  (was silently trimmed to 100)
-AUDIO_DIM  = 102   # FIXED: matches actual concatenated dims exactly
+AUDIO_DIM = 102   # FIXED: matches actual concatenated dims exactly
 LYRICS_DIM = 0
-TOTAL_DIM  = AUDIO_DIM + LYRICS_DIM  # 102 (audio-only mode)
+TOTAL_DIM = AUDIO_DIM + LYRICS_DIM  # 102 (audio-only mode)
 
 CLIP_DURATION = 30   # seconds
 N_PER_GENRE_EN = 20
@@ -85,10 +85,10 @@ def download_genre_yt(genre_name, search_query, out_dir, n=20):
 
     existing = len([f for f in os.listdir(genre_dir) if f.endswith('.wav')])
     if existing >= n:
-        print(f'   {genre_name}: {existing} tracks already downloaded, skipping.')
+        print(f' {genre_name}: {existing} tracks already downloaded, skipping.')
         return
 
-    print(f'   Downloading {genre_name} (target {n})...')
+    print(f' Downloading {genre_name} (target {n})...')
 
     cmd = [
         'yt-dlp',
@@ -107,14 +107,14 @@ def download_genre_yt(genre_name, search_query, out_dir, n=20):
     try:
         subprocess.run(cmd, timeout=300)
     except subprocess.TimeoutExpired:
-        print(f'   {genre_name}: Timeout reached, using partial downloads')
+        print(f' {genre_name}: Timeout reached, using partial downloads')
 
     # ALWAYS count what we got (even after timeout)
     downloaded = len([f for f in os.listdir(genre_dir) if f.endswith('.wav')])
     if downloaded == 0:
-        print(f'   {genre_name}: No tracks downloaded')
+        print(f' {genre_name}: No tracks downloaded')
     else:
-        print(f'   {genre_name}: {downloaded} tracks available (used for training)')
+        print(f' {genre_name}: {downloaded} tracks available (used for training)')
 
 
 def download_english_songs(english_dir='/content/english',
@@ -152,7 +152,7 @@ def download_bangla_genre(genre_name, search_query, out_dir, n=20):
         print(f'   {genre_name}: {existing} tracks already downloaded, skipping.')
         return
 
-    print(f'   Downloading {genre_name} ({n} tracks)...')
+    print(f' Downloading {genre_name} ({n} tracks)...')
     cmd = [
         'yt-dlp',
         '--quiet',
@@ -168,7 +168,7 @@ def download_bangla_genre(genre_name, search_query, out_dir, n=20):
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     downloaded = len([f for f in os.listdir(genre_dir) if f.endswith('.wav')])
-    print(f'   {genre_name}: {downloaded} tracks downloaded.')
+    print(f' {genre_name}: {downloaded} tracks downloaded.')
 
 
 def download_bangla_songs(bangla_dir='/content/bangla',
@@ -206,75 +206,75 @@ def extract_audio_features(file_path, sr=22050, duration=30):
 
         # 1. MFCCs — 40 dims
         mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-        mfcc_mean = np.mean(mfcc, axis=1)                            # (40,)
+        mfcc_mean = np.mean(mfcc, axis=1) # (40,)
 
         # 2. MFCC Deltas — 13 dims
         mfcc_delta = librosa.feature.delta(mfcc[:13])
-        mfcc_delta_mean = np.mean(mfcc_delta, axis=1)               # (13,)
+        mfcc_delta_mean = np.mean(mfcc_delta, axis=1) # (13,)
 
         # 3. Chroma STFT — 12 dims
-        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
-        chroma_mean = np.mean(chroma, axis=1)                        # (12,)
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr) 
+        chroma_mean = np.mean(chroma, axis=1) # (12,)
 
         # 4. Mel-spectrogram stats — 8 dims (mean+std × 4 bands)
         mel_spec = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
-        mel_db   = librosa.power_to_db(mel_spec, ref=np.max)
-        bands    = np.array_split(mel_db, 4, axis=0)
+        mel_db = librosa.power_to_db(mel_spec, ref=np.max)
+        bands = np.array_split(mel_db, 4, axis=0)
         mel_stats = np.array([
             stat for band in bands
             for stat in (np.mean(band), np.std(band))
-        ])                                                            # (8,)
+        ]) # (8,)
 
         # 5. Tonnetz — 6 dims
         tonnetz = librosa.feature.tonnetz(y=librosa.effects.harmonic(y), sr=sr)
-        tonnetz_mean = np.mean(tonnetz, axis=1)                      # (6,)
+        tonnetz_mean = np.mean(tonnetz, axis=1) # (6,)
 
         # 6. Spectral features — 9 dims (FIXED: pinned output shape)
-        spec_centroid  = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))   # 1
+        spec_centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))   # 1
         spec_bandwidth = np.mean(librosa.feature.spectral_bandwidth(y=y, sr=sr))  # 1
-        spec_rolloff   = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr))    # 1
+        spec_rolloff = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr)) # 1
 
         # FIXED: take mean over BOTH axes → single scalar per contrast band
         # avoids variable output shape across different audio files/sr combos
         spec_contrast_raw = librosa.feature.spectral_contrast(y=y, sr=sr, n_bands=4)
         spec_contrast = np.mean(spec_contrast_raw, axis=1)[:4]   # force exactly 4 values
 
-        onset_env     = librosa.onset.onset_strength(y=y, sr=sr)
-        spec_flux     = np.mean(onset_env)                                         # 1
-        spec_flatness = np.mean(librosa.feature.spectral_flatness(y=y))           # 1
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+        spec_flux = np.mean(onset_env) # 1
+        spec_flatness = np.mean(librosa.feature.spectral_flatness(y=y)) # 1
 
         spectral_feats = np.array([
             spec_centroid, spec_bandwidth, spec_rolloff,
-            *spec_contrast,          # exactly 4
+            *spec_contrast, # exactly 4
             spec_flux, spec_flatness # 2
-        ])                           # total = 9, always                           # (9,)
+        ]) # total = 9, always  # (9,)
 
         # 7. Rhythm — 3 dims
-        tempo, beats  = librosa.beat.beat_track(y=y, sr=sr)
+        tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
         beat_strength = np.mean(onset_env[beats]) if len(beats) > 0 else 0.0
-        onset_rate    = len(librosa.onset.onset_detect(y=y, sr=sr)) / (len(y) / sr)
-        rhythm_feats  = np.array([float(tempo), beat_strength, onset_rate])  # (3,)
+        onset_rate = len(librosa.onset.onset_detect(y=y, sr=sr)) / (len(y) / sr)
+        rhythm_feats = np.array([float(tempo), beat_strength, onset_rate])  # (3,)
 
         # 8. ZCR + RMS — 2 dims
         zcr = np.mean(librosa.feature.zero_crossing_rate(y=y))
         rms = np.mean(librosa.feature.rms(y=y))
-        energy_feats = np.array([zcr, rms])                          # (2,)
+        energy_feats = np.array([zcr, rms]) # (2,)
 
         # 9. Chroma CQT — 9 dims
-        chroma_cqt   = librosa.feature.chroma_cqt(y=y, sr=sr)
-        chroma_cqt_m = np.mean(chroma_cqt, axis=1)[:9]              # (9,)
+        chroma_cqt = librosa.feature.chroma_cqt(y=y, sr=sr)
+        chroma_cqt_m = np.mean(chroma_cqt, axis=1)[:9] # (9,)
 
         feature_vec = np.concatenate([
-            mfcc_mean,        # 40
-            mfcc_delta_mean,  # 13
-            chroma_mean,      # 12
-            mel_stats,        #  8
-            tonnetz_mean,     #  6
-            spectral_feats,   #  9  (FIXED: no silent trim)
-            rhythm_feats,     #  3
-            energy_feats,     #  2
-            chroma_cqt_m,     #  9
-        ])                    # total = 102 — matches AUDIO_DIM exactly
+            mfcc_mean, # 40
+            mfcc_delta_mean, # 13
+            chroma_mean, # 12
+            mel_stats, #  8
+            tonnetz_mean, #  6
+            spectral_feats, #  9  
+            rhythm_feats, #  3
+            energy_feats, #  2
+            chroma_cqt_m, #  9
+        ]) # total = 102 — matches AUDIO_DIM exactly
 
         # Safety pad/trim (should never trigger now, but kept as guard)
         if len(feature_vec) != AUDIO_DIM:
@@ -297,12 +297,12 @@ def load_lyrics_for_track(audio_path):
     Try to load a .txt lyrics file co-located with the audio file.
     Returns None if not found.
     """
-    base      = os.path.splitext(audio_path)[0]
+    base = os.path.splitext(audio_path)[0]
     genre_dir = os.path.dirname(audio_path)
     if os.path.exists(base + '.txt'):
         with open(base + '.txt', 'r', encoding='utf-8', errors='ignore') as f:
             return f.read().strip()
-    fname_txt   = os.path.splitext(os.path.basename(audio_path))[0] + '.txt'
+    fname_txt = os.path.splitext(os.path.basename(audio_path))[0] + '.txt'
     lyrics_path = os.path.join(genre_dir, 'lyrics', fname_txt)
     if os.path.exists(lyrics_path):
         with open(lyrics_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -328,11 +328,11 @@ def build_lyrics_corpus(records):
             has_real_lyrics.append(False)
 
     n_real = sum(has_real_lyrics)
-    print(f'   Lyrics coverage: {n_real}/{len(records)} tracks have real lyrics '
+    print(f' Lyrics coverage: {n_real}/{len(records)} tracks have real lyrics '
           f'({100*n_real/max(len(records),1):.1f}%)')
     if n_real == 0:
-        print('   No real lyrics found — lyric dims will carry no signal.')
-        print('   Consider audio-only mode or providing .txt lyric files.')
+        print(' No real lyrics found — lyric dims will carry no signal.')
+        print(' Consider audio-only mode or providing .txt lyric files.')
     return corpus, has_real_lyrics
 
 
@@ -369,13 +369,13 @@ def build_dataset(english_dir='/content/english',
 
     Returns
     -------
-    df        : pd.DataFrame  — metadata + cluster columns later
-    X_scaled  : np.ndarray    — StandardScaler-normalised feature matrix
-    y_genre   : np.ndarray    — integer genre labels
-    y_lang    : np.ndarray    — integer language labels
-    le_genre  : LabelEncoder
-    le_lang   : LabelEncoder
-    scaler    : StandardScaler (fitted)
+    df : pd.DataFrame  — metadata + cluster columns later
+    X_scaled : np.ndarray — StandardScaler-normalised feature matrix
+    y_genre : np.ndarray — integer genre labels
+    y_lang : np.ndarray — integer language labels
+    le_genre : LabelEncoder
+    le_lang : LabelEncoder
+    scaler : StandardScaler (fitted)
     """
     records = []
 
@@ -416,7 +416,7 @@ def build_dataset(english_dir='/content/english',
     df = pd.DataFrame(records)
 
     # Audio-only mode (LYRICS_DIM = 0)
-    X_raw = np.vstack(df['audio_features'].values)        # (N, 102)
+    X_raw = np.vstack(df['audio_features'].values) # (N, 102)
 
     if lyrics_dim > 0:
         print('\nBuilding lyrics embeddings...')
@@ -433,20 +433,20 @@ def build_dataset(english_dir='/content/english',
     assert X_raw.shape[1] == total_dim, \
         f'Expected {total_dim} dims, got {X_raw.shape[1]}'
 
-    X_raw    = np.nan_to_num(X_raw, nan=0.0, posinf=0.0, neginf=0.0)
-    scaler   = StandardScaler()
+    X_raw = np.nan_to_num(X_raw, nan=0.0, posinf=0.0, neginf=0.0)
+    scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X_raw)
 
     le_genre = LabelEncoder()
-    y_genre  = le_genre.fit_transform(df['genre'])
-    le_lang  = LabelEncoder()
-    y_lang   = le_lang.fit_transform(df['language'])
+    y_genre = le_genre.fit_transform(df['genre'])
+    le_lang = LabelEncoder()
+    y_lang = le_lang.fit_transform(df['language'])
 
     print(f'\nFeature matrix: {X_scaled.shape}')
-    print(f'   Audio: {AUDIO_DIM} | Lyrics: {lyrics_dim} | Total: {total_dim}')
-    print(f'   English: {(df["language"]=="English").sum()} | '
+    print(f' Audio: {AUDIO_DIM} | Lyrics: {lyrics_dim} | Total: {total_dim}')
+    print(f' English: {(df["language"]=="English").sum()} | '
           f'Bangla: {(df["language"]=="Bangla").sum()}')
-    print(f'   Genres: {list(le_genre.classes_)}')
+    print(f' Genres: {list(le_genre.classes_)}')
 
     return df, X_scaled, y_genre, y_lang, le_genre, le_lang, scaler
 
