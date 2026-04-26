@@ -105,6 +105,82 @@ This project is divided into three progressive levels of difficulty. Each stage 
 - Silhouette Score
 - Calinski–Harabasz Index
 
+### Running the Easy Task
+
+#### Prerequisites
+
+```bash
+pip install torch librosa umap-learn scikit-learn pandas matplotlib tqdm yt-dlp
+brew install ffmpeg       # macOS
+# sudo apt install ffmpeg # Linux
+```
+
+#### Option A — Download the dataset yourself (via yt-dlp)
+
+The pipeline can automatically download ~20 WAV clips per genre from YouTube.
+
+```bash
+cd "src/Easy Task"
+python main.py
+```
+
+> **If you get `HTTP Error 403: Forbidden`**, YouTube is blocking the automated download.
+> Fix it by:
+> 1. Updating yt-dlp: `pip install -U yt-dlp`
+> 2. Making sure you are **logged into YouTube in Chrome**, then re-running — the script
+>    passes `--cookies-from-browser chrome` so yt-dlp uses your session cookies to bypass the block.
+>    If you use a different browser, edit the two `--cookies-from-browser` lines in
+>    `src/Easy Task/dataset.py` (one in `download_genre_yt`, one in `download_bangla_genre`)
+>    and change `chrome` to `firefox` or `safari`.
+
+#### Option B — Use a pre-downloaded dataset (recommended)
+
+If you already have audio files organised as:
+
+```
+data/VAE_Music_Dataset/
+├── english/
+│   ├── Rock/        *.wav / *.mp3
+│   ├── Pop/
+│   ├── Jazz/
+│   ├── Classical/
+│   ├── HipHop/
+│   ├── Blues/
+│   └── Country/
+└── bangla/
+    ├── Baul/
+    ├── Folk/
+    ├── Rabindra/
+    ├── ModernPop/
+    └── Classical/
+```
+
+The `main.py` already points to this location — just run:
+
+```bash
+cd "src/Easy Task"
+python main.py
+```
+
+No downloads will be triggered. The script goes straight to feature extraction using whatever audio files are present. Empty genre folders are skipped automatically.
+
+#### Outputs
+
+All plots, the model checkpoint, and CSVs are saved to `src/Easy Task/outputs/`:
+
+| File | Description |
+|---|---|
+| `dataset_distribution.png` | Track count by language and genre |
+| `training_curves.png` | VAE total / reconstruction / KL loss over epochs |
+| `elbow_method.png` | Inertia vs K — use this to pick the best K |
+| `tsne_visualization.png` | t-SNE of latent space coloured by genre and language |
+| `umap_visualization.png` | UMAP of latent space coloured by genre and language |
+| `metrics_comparison.png` | VAE vs PCA baseline (Silhouette + Calinski-Harabasz) |
+| `cluster_composition.png` | Language breakdown per cluster |
+| `vae_music_model.pt` | Saved model checkpoint |
+| `cluster_assignments.csv` | Per-track cluster labels |
+| `metrics_table.csv` | Numeric evaluation results |
+
 ---
 
 ## Medium Task
