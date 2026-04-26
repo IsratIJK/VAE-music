@@ -10,6 +10,8 @@ This repository presents a comprehensive study on **Variational Autoencoders (VA
 
 We systematically explore multiple VAE variants and evaluate their ability to learn meaningful latent representations, which are then used for clustering and analysis.
 
+![Unified Pipeline](README%20image%20files/unified_pipeline.png)
+
 
 
 ## Repository Structure
