@@ -32,23 +32,26 @@ from vae import (AUDIO_FEAT_DIM, MFCC_2D_DIM, N_MFCC, N_MFCC_ROWS,
 
 warnings.filterwarnings('ignore')
 
-# Dataset directories
-GTZAN_DIR = '/content/gtzan'
-BANGLAGITI_DIR = '/content/banglagiti'
-BMGCD_DIR = '/content/bmgcd'
-BANGLA_YT_DIR = '/content/bangla_audio'
-OUTPUT_DIR = '/content/vae_combined_outputs'
-for d in [GTZAN_DIR, BANGLAGITI_DIR, BMGCD_DIR, BANGLA_YT_DIR, OUTPUT_DIR]:
+# Dataset directories — resolved relative to repo root for local runs
+_MODULE_DIR    = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT     = os.path.dirname(os.path.dirname(_MODULE_DIR))
+
+GTZAN_DIR      = os.path.join(_REPO_ROOT, 'music_dataset', 'gtzan')
+BANGLAGITI_DIR = os.path.join(_REPO_ROOT, 'music_dataset', 'banglagiti')
+BMGCD_DIR      = os.path.join(_REPO_ROOT, 'music_dataset', 'bmgcd')
+BANGLA_YT_DIR  = os.path.join(_REPO_ROOT, 'data', 'bangla_audio')
+OUTPUT_DIR     = os.path.join(_MODULE_DIR, 'outputs')
+for d in [BANGLA_YT_DIR, OUTPUT_DIR]:
     os.makedirs(d, exist_ok=True)
 
 # Genius / Lyrics config
 GENIUS_TOKEN = os.getenv('GENIUS_TOKEN', 'P_idh3O0SAtctPm4mwZZObR0jkagRyOcTYcTAO89DYHfo5auQF6o0AINS63JUx0O')
-LYRICS_CACHE = '/content/lyrics_cache'
+LYRICS_CACHE = os.path.join(_REPO_ROOT, 'data', 'lyrics_cache')
 os.makedirs(LYRICS_CACHE, exist_ok=True)
 
 # Dataset config
 N_PER_GENRE = 20
-MIN_SAMPLES_FOR_METRICS = 30
+MIN_SAMPLES_FOR_METRICS = 5   # was 30; lowered for small local datasets
 N_BANGLA_PER_GENRE = 20
 
 BANGLA_QUERIES_YT = {
@@ -582,7 +585,7 @@ def build_all_datasets(gtzan_audio_dir=None):
         'mdimranhassan/bangla-music-genre-classification', BMGCD_DIR)
     X_bm, X_bm_2d, y_bm, lang_bm, paths_bm = [], [], [], [], []
     if bm_dir:
-        recs_bm = collect_audio_from_dir(bm_dir, min_per_genre=10)
+        recs_bm = collect_audio_from_dir(bm_dir, min_per_genre=1)
         gc_bm = defaultdict(int)
         for fpath, genre in tqdm(recs_bm, desc='  librosa BMGCD', leave=False):
             if gc_bm[genre] >= N_PER_GENRE: continue

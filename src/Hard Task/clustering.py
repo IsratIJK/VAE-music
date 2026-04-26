@@ -41,6 +41,10 @@ from dataset import make_multimodal, make_genre_onehot, OUTPUT_DIR
 
 warnings.filterwarnings('ignore')
 
+# ── Small-dataset overrides (set from main.py after import) ───────────────────
+SMALL_DATASET_MIN_SAMPLES = 10   # min noise-free samples to compute clustering metrics
+ALLOW_SINGLE_SONG_CLUSTER = False  # if True, DBSCAN uses min_samples=1
+
 MODEL_LABELS = {
     'mlp': 'MLP-VAE',
     'conv': 'Conv2D-VAE',
@@ -112,7 +116,7 @@ def compute_metrics(Z, y_true, cluster_labels):
     cm = cluster_labels[mask]
     n_cl = len(set(cm))
 
-    if n_cl < 2 or len(Zm) < 10:
+    if n_cl < 2 or len(Zm) < SMALL_DATASET_MIN_SAMPLES:
         return dict(sil=nan, db=nan, ch=nan, nmi=nan, ari=nan, purity=nan)
 
     return dict(
@@ -172,7 +176,7 @@ def run_clustering(Z, y_true, n_class, tag=''):
 
     # eps auto-tuned via percentile sweep on L2-normalised Z
     Z_norm = normalize(Z, norm='l2')
-    min_samp = max(3, len(Z) // (K * 10))
+    min_samp = 1 if ALLOW_SINGLE_SONG_CLUSTER else max(3, len(Z) // (K * 10))
     nbrs = NearestNeighbors(n_neighbors=min_samp).fit(Z_norm)
     dists, _ = nbrs.kneighbors(Z_norm)
     kth_dists = np.sort(dists[:, -1])

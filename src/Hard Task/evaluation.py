@@ -636,11 +636,12 @@ def print_final_report(all_results):
 
 
 def download_results(out_dir=OUTPUT_DIR):
-    shutil.make_archive('/content/vae_combined_results', 'zip', out_dir)
+    zip_path = os.path.join(out_dir, 'vae_combined_results')
+    shutil.make_archive(zip_path, 'zip', out_dir)
     try:
         from google.colab import files
-        files.download('/content/vae_combined_results.zip')
+        files.download(zip_path + '.zip')
         print('Download started!')
     except ImportError:
-        print(f'Zip saved: /content/vae_combined_results.zip')
-        print(' (google.colab not available — running outside Colab)')
+        print(f'Zip saved: {zip_path}.zip')
+        print('(google.colab not available — running outside Colab)')

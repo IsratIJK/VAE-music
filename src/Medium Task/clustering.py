@@ -78,6 +78,10 @@ Z_KEYS_ALL = ['mlp', 'conv', 'hyb_conv', 'hyb_mlp',
               'beta', 'cvae', 'conv1d', 'ae', 'mm', 'pca', 'raw']
 SKIP_VIS = {'pca'}   # PCA already low-dim — use first 2 components directly
 
+# Small-dataset options — override in main.py before calling full_pipeline
+SMALL_DATASET_MIN_SAMPLES = 10  # min noise-free samples needed to compute metrics
+ALLOW_SINGLE_SONG_CLUSTER = False  # if True, DBSCAN uses min_samples=1
+
 
 # Multi-Algorithm Clustering Engine
 
@@ -123,7 +127,7 @@ def compute_metrics(Z, y_true, cluster_labels):
     n_cl = len(set(cm))
 
     # Guard: too few samples or clusters
-    if n_cl < 2 or len(Zm) < 10:
+    if n_cl < 2 or len(Zm) < SMALL_DATASET_MIN_SAMPLES:
         return dict(sil=nan, db=nan, ch=nan, nmi=nan, ari=nan, purity=nan)
 
     return dict(
@@ -192,7 +196,7 @@ def run_clustering(Z, y_true, n_class, tag=''):
 
     # DBSCAN — eps auto-tuned via percentile sweep on L2-normalised Z
     Z_norm = normalize(Z, norm='l2')
-    min_samp = max(3, len(Z) // (K * 10))
+    min_samp = 1 if ALLOW_SINGLE_SONG_CLUSTER else max(3, len(Z) // (K * 10))
     nbrs = NearestNeighbors(n_neighbors=min_samp).fit(Z_norm)
     dists, _  = nbrs.kneighbors(Z_norm)
     kth_dists = np.sort(dists[:, -1])

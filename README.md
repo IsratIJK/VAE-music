@@ -238,6 +238,114 @@ Plus **PCA baseline** and **Raw-Spectral** (K-Means directly on 65-dim features)
 - English vs Bangla language separation plots
 - Training loss curves per model per dataset
 
+### Running the Medium Task
+
+#### Prerequisites
+
+```bash
+pip install torch torchvision
+pip install librosa soundfile audioread
+pip install umap-learn scikit-learn matplotlib seaborn
+pip install tqdm lyricsgenius beautifulsoup4 requests
+brew install ffmpeg       # macOS
+# sudo apt install ffmpeg # Linux
+```
+
+#### Dataset layout
+
+Place audio files under `music_dataset/` at the repo root, organised as:
+
+```
+music_dataset/
+├── gtzan/                    # English — one sub-folder per genre
+│   ├── blues/
+│   │   ├── blues.00001.wav
+│   │   └── ...
+│   ├── classical/
+│   ├── country/
+│   ├── disco/
+│   ├── hiphop/
+│   ├── jazz/
+│   ├── metal/
+│   ├── pop/
+│   ├── reggae/
+│   └── rock/
+├── banglagiti/               # Bangla — 3 .wav files per genre is fine
+│   ├── Baul/
+│   ├── Classical/
+│   ├── Folk/
+│   ├── Modern_Pop/
+│   └── Rabindra_Sangeet/
+└── bmgcd/                    # Bangla — 3 .wav files per genre is fine
+    ├── Adhunik/
+    ├── Baul/
+    ├── Classical/
+    ├── Folk/
+    └── Rabindra/
+```
+
+`.wav` and `.mp3` are both accepted. Genres with fewer files than `MIN_PER_GENRE` (default `1`) are skipped automatically.
+
+#### Run
+
+```bash
+cd "src/Medium Task"
+python main.py
+```
+
+#### Small-dataset mode
+
+The Bangla datasets ship with only **3 songs per genre**, which is too small for the default thresholds. Two flags at the top of `main.py` handle this automatically:
+
+```python
+SMALL_DATASET             = True   # lowers metric minimum from 10 → 3 samples
+                                   # disables early stopping (noisy 2-sample val set)
+ALLOW_SINGLE_SONG_CLUSTER = False  # set True to allow DBSCAN min_samples = 1
+```
+
+`SMALL_DATASET = True` does two things under the hood:
+- Patches `vae.EARLY_STOP_PATIENCE = 999` — prevents early stopping from misfiring on the tiny 2-sample validation split that results from a 90/10 split of ~15 tracks.
+- Patches `clustering.SMALL_DATASET_MIN_SAMPLES = 3` — allows clustering metrics to be computed when as few as 3 noise-free samples are present (instead of the default 10).
+
+If you want DBSCAN to assign every point to a cluster (no noise points), set `ALLOW_SINGLE_SONG_CLUSTER = True`. This changes the DBSCAN `min_samples` parameter from `max(3, N/(K×10))` to `1`.
+
+#### Lyrics fetching
+
+The pipeline automatically fetches lyrics to build multi-modal features:
+- **English (GTZAN)** — GTZAN files have numeric names (`blues.00001.wav`), so lyrics lookup is skipped; all tracks receive a neutral fallback embedding.
+- **Bangla (BanglaGITI / BMGCD)** — the script scrapes [gaanesuno.com](https://gaanesuno.com) using the track filename as a search query. If a file is named by YouTube video ID (e.g. `u9UpVidGgik.wav`), the lookup will fail and a neutral fallback is used — this is handled gracefully with no crash.
+
+To use the Genius API for English lyrics, set the `GENIUS_TOKEN` environment variable:
+```bash
+export GENIUS_TOKEN=your_token_here
+```
+
+#### Outputs
+
+All plots, CSVs, and the zip archive are saved to `src/Medium Task/outputs/`:
+
+| File | Description |
+|---|---|
+| `genre_distribution.png` | Track count per genre for each dataset |
+| `latent_all_<dataset>.png` | UMAP of all 11 feature spaces (genre + language) |
+| `latent_tsne_<dataset>.png` | t-SNE of all 11 feature spaces |
+| `elbow_plots.png` | Inertia / Silhouette / CH vs K per dataset |
+| `dbscan_analysis.png` | DBSCAN clusters with noise points highlighted |
+| `cluster_composition_<dataset>.png` | Genre % heatmap per KMeans cluster |
+| `language_separation.png` | English vs Bangla separation in UMAP space |
+| `training_curves.png` | Training loss per model per dataset |
+| `metrics_heatmap.png` | 6-metric heatmap: all feature spaces × all algorithms |
+| `best_metrics_bar.png` | Best Silhouette / NMI / ARI / Purity per feature space |
+| `vae_vs_baseline.png` | ΔVAE − PCA for Silhouette and NMI |
+| `disentangle_<dataset>.png` | Per-dimension latent histograms (MLP / Beta / CVAE) |
+| `latent_traversal_<model>.png` | Latent traversal across 5 dims × 7 steps |
+| `reconstruction_<dataset>.png` | Original vs reconstructed feature vectors |
+| `paradigm_comparison_bar.png` | Best-VAE vs PCA vs AE vs Direct Spectral (6 metrics) |
+| `paradigm_radar.png` | Normalised radar chart across all paradigms |
+| `full_metrics.csv` | 11 feature spaces × 4 algorithms × 6 metrics |
+| `paradigm_comparison.csv` | Head-to-head paradigm results |
+| `vae_combined_results.zip` | All of the above zipped for easy download |
+
 ---
 
 ## Hard Task
@@ -270,7 +378,30 @@ Outputs: bar charts, ranked summary table, normalised radar chart.
 **Full metrics table**
 11 feature spaces × 4 algorithms × 6 metrics per dataset, exported to `full_metrics.csv`.
 
+### Running the Hard Task
 
+The Hard Task uses the **exact same setup** as the Medium Task — same dataset layout, prerequisites, small-dataset mode, and lyrics-fetching behaviour. See [Running the Medium Task](#running-the-medium-task) for all of that.
+
+The only difference is the entry point and output directory:
+
+```bash
+python "src/Hard Task/main.py"
+```
+
+Outputs are saved to `src/Hard Task/outputs/` — same file set as the Medium Task, with the addition of:
+
+| File | Description |
+|---|---|
+| `disentangle_<dataset>.png` | Per-dimension latent histograms for MLP-VAE, Beta-VAE, CVAE |
+| `latent_traversal_mlp.png` | MLP-VAE latent traversal (5 dims × 7 steps) |
+| `latent_traversal_beta.png` | Beta-VAE latent traversal |
+| `latent_traversal_cvae.png` | CVAE latent traversal |
+| `reconstruction_<dataset>.png` | Original vs reconstructed features (5 tracks × 3 models) |
+| `paradigm_comparison_bar.png` | Best-VAE vs PCA vs AE vs Direct Spectral (6 metrics) |
+| `paradigm_radar.png` | Normalised radar chart across all paradigms |
+| `paradigm_comparison.csv` | Head-to-head paradigm results |
+
+---
 
 ## VAE Variants
 
