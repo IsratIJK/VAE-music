@@ -508,12 +508,3 @@ brew install ffmpeg -->
 
 
 
-## Reproducibility
-
-All random seeds are fixed:
-```python
-NUMPY_SEED = 42
-TORCH_SEED = 42
-```
-
-The device is selected automatically (`DEVICE_STR = "auto"`): CUDA if available, otherwise CPU.
