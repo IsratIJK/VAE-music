@@ -115,7 +115,7 @@ brew install ffmpeg       # macOS
 # sudo apt install ffmpeg # Linux
 ```
 
-#### Option A — Download the dataset yourself (via yt-dlp)
+#### Option A: Download the dataset in person (via yt-dlp)
 
 The pipeline can automatically download ~20 WAV clips per genre from YouTube.
 
@@ -133,7 +133,7 @@ python main.py
 >    `src/Easy Task/dataset.py` (one in `download_genre_yt`, one in `download_bangla_genre`)
 >    and change `chrome` to `firefox` or `safari`.
 
-#### Option B — Use a pre-downloaded dataset (recommended)
+#### Option B: Use a pre-downloaded dataset (recommended)
 
 If you already have audio files organised as:
 
@@ -155,7 +155,7 @@ data/VAE_Music_Dataset/
     └── Classical/
 ```
 
-The `main.py` already points to this location — just run:
+The `main.py` already points to this location. Just run:
 
 ```bash
 cd "src/Easy Task"
@@ -172,7 +172,7 @@ All plots, the model checkpoint, and CSVs are saved to `src/Easy Task/outputs/`:
 |---|---|
 | `dataset_distribution.png` | Track count by language and genre |
 | `training_curves.png` | VAE total / reconstruction / KL loss over epochs |
-| `elbow_method.png` | Inertia vs K — use this to pick the best K |
+| `elbow_method.png` | Inertia vs K. Use this to pick the best K |
 | `tsne_visualization.png` | t-SNE of latent space coloured by genre and language |
 | `umap_visualization.png` | UMAP of latent space coloured by genre and language |
 | `metrics_comparison.png` | VAE vs PCA baseline (Silhouette + Calinski-Harabasz) |
@@ -218,8 +218,8 @@ Plus **PCA baseline** and **Raw-Spectral** (K-Means directly on 65-dim features)
 
 ### Clustering Algorithms
 - **K-Means** (n_init=20)
-- **Agglomerative — Ward linkage**
-- **Agglomerative — Complete linkage**
+- **Agglomerative: Ward linkage**
+- **Agglomerative: Complete linkage**
 - **DBSCAN** with automatic ε tuning via k-NN percentile sweep (minimises |found clusters − K| while keeping noise < 30%)
 
 ### Evaluation Metrics (6)
@@ -304,16 +304,16 @@ ALLOW_SINGLE_SONG_CLUSTER = False  # set True to allow DBSCAN min_samples = 1
 ```
 
 `SMALL_DATASET = True` does two things under the hood:
-- Patches `vae.EARLY_STOP_PATIENCE = 999` — prevents early stopping from misfiring on the tiny 2-sample validation split that results from a 90/10 split of ~15 tracks.
-- Patches `clustering.SMALL_DATASET_MIN_SAMPLES = 3` — allows clustering metrics to be computed when as few as 3 noise-free samples are present (instead of the default 10).
+- Patches `vae.EARLY_STOP_PATIENCE = 999`. Itprevents early stopping from misfiring on the tiny 2-sample validation split that results from a 90/10 split of ~15 tracks.
+- Patches `clustering.SMALL_DATASET_MIN_SAMPLES = 3`. It allows clustering metrics to be computed when as few as 3 noise-free samples are present (instead of the default 10).
 
 If you want DBSCAN to assign every point to a cluster (no noise points), set `ALLOW_SINGLE_SONG_CLUSTER = True`. This changes the DBSCAN `min_samples` parameter from `max(3, N/(K×10))` to `1`.
 
 #### Lyrics fetching
 
 The pipeline automatically fetches lyrics to build multi-modal features:
-- **English (GTZAN)** — GTZAN files have numeric names (`blues.00001.wav`), so lyrics lookup is skipped; all tracks receive a neutral fallback embedding.
-- **Bangla (BanglaGITI / BMGCD)** — the script scrapes [gaanesuno.com](https://gaanesuno.com) using the track filename as a search query. If a file is named by YouTube video ID (e.g. `u9UpVidGgik.wav`), the lookup will fail and a neutral fallback is used — this is handled gracefully with no crash.
+- **English (GTZAN) :** GTZAN files have numeric names (`blues.00001.wav`), so lyrics lookup is skipped; all tracks receive a neutral fallback embedding.
+- **Bangla (BanglaGITI / BMGCD) :** The script scrapes [gaanesuno.com](https://gaanesuno.com) using the track filename as a search query. If a file is named by YouTube video ID (e.g. `u9UpVidGgik.wav`), the lookup will fail and a neutral fallback is used. This is handled gracefully with no crash.
 
 To use the Genius API for English lyrics, set the `GENIUS_TOKEN` environment variable:
 ```bash
@@ -350,7 +350,7 @@ All plots, CSVs, and the zip archive are saved to `src/Medium Task/outputs/`:
 
 ## Hard Task
 
-**Goal:** Full evaluation and interpretability pipeline — extends the Medium Task with in-depth comparative analysis, disentanglement study, and paradigm comparison.
+**Goal:** Full evaluation and interpretability pipeline. It extends the Medium Task with in-depth comparative analysis, disentanglement study, and paradigm comparison.
 
 ### Additional Analyses
 
@@ -388,7 +388,7 @@ The only difference is the entry point and output directory:
 python "src/Hard Task/main.py"
 ```
 
-Outputs are saved to `src/Hard Task/outputs/` — same file set as the Medium Task, with the addition of:
+Outputs are saved to `src/Hard Task/outputs/`. Same file set as the Medium Task, with the addition of:
 
 | File | Description |
 |---|---|
@@ -407,15 +407,15 @@ Outputs are saved to `src/Hard Task/outputs/` — same file set as the Medium Ta
 
 The following Variational Autoencoder architectures are implemented and evaluated:
 
-- **MLP-VAE** — 3-layer MLP encoder/decoder
-- **Beta-VAE** — deeper MLP with β-sweep [0.5, 1, 2, 4, 8, 16] for disentangled representations
-- **CVAE** — Conditional VAE; genre one-hot label concatenated to encoder and decoder inputs
-- **Conv1D-VAE** — Treats the 65-dim feature vector as a 1-D signal; Conv1d encoder + ConvTranspose1d decoder
-- **Conv2D-VAE** — Full 2D convolutional VAE on delta-stacked MFCC spectrograms (60 × 128)
-- **Hybrid-Conv-VAE** — End-to-end Conv2D encoder fused with lyric projection head
-- **Hybrid-MLP-VAE** — MLP-VAE on L2-normalised audio ‖ lyric concatenation
-- **MultiModalVAE** — Dedicated audio + lyric projection branches; reconstructs audio only
-- **Autoencoder** — Deterministic baseline (no KL divergence)
+- **MLP-VAE :** 3-layer MLP encoder/decoder
+- **Beta-VAE :** deeper MLP with β-sweep [0.5, 1, 2, 4, 8, 16] for disentangled representations
+- **CVAE :** Conditional VAE; genre one-hot label concatenated to encoder and decoder inputs
+- **Conv1D-VAE :** Treats the 65-dim feature vector as a 1-D signal; Conv1d encoder + ConvTranspose1d decoder
+- **Conv2D-VAE :** Full 2D convolutional VAE on delta-stacked MFCC spectrograms (60 × 128)
+- **Hybrid-Conv-VAE :** End-to-end Conv2D encoder fused with lyric projection head
+- **Hybrid-MLP-VAE :** MLP-VAE on L2-normalised audio ‖ lyric concatenation
+- **MultiModalVAE :** Dedicated audio + lyric projection branches; reconstructs audio only
+- **Autoencoder :** Deterministic baseline (no KL divergence)
 
 
 
@@ -424,9 +424,9 @@ The following Variational Autoencoder architectures are implemented and evaluate
 Clustering is performed on learned latent representations using multiple algorithms:
 
 - **K-Means** (n_init=20, seed=42)
-- **Agglomerative Clustering — Ward linkage**
-- **Agglomerative Clustering — Complete linkage**
-- **DBSCAN** — ε auto-tuned via k-NN distance percentile sweep on L2-normalised latent space
+- **Agglomerative Clustering (Ward linkage)**
+- **Agglomerative Clustering (Complete linkage)**
+- **DBSCAN** ε auto-tuned via k-NN distance percentile sweep on L2-normalised latent space
 
 These methods evaluate how different latent structures behave under varying assumptions of density, hierarchy, and cluster geometry.
 
@@ -436,12 +436,12 @@ These methods evaluate how different latent structures behave under varying assu
 
 Model performance is evaluated using six standard clustering metrics:
 
-- **Silhouette Score** ↑ — intra-cluster cohesion vs inter-cluster separation
-- **Davies–Bouldin Index** ↓ — average similarity of each cluster to its most similar neighbour
-- **Calinski–Harabasz Index** ↑ — ratio of between-cluster to within-cluster dispersion
-- **Normalized Mutual Information (NMI)** ↑ — symmetric, corrects for cluster size
-- **Adjusted Rand Index (ARI)** ↑ — corrects for chance label agreement
-- **Cluster Purity** ↑ — fraction of samples that belong to the majority genre in their cluster
+- **Silhouette Score** ↑ : intra-cluster cohesion vs inter-cluster separation
+- **Davies–Bouldin Index** ↓ : average similarity of each cluster to its most similar neighbour
+- **Calinski–Harabasz Index** ↑ : ratio of between-cluster to within-cluster dispersion
+- **Normalized Mutual Information (NMI)** ↑ : symmetric, corrects for cluster size
+- **Adjusted Rand Index (ARI)** ↑ : corrects for chance label agreement
+- **Cluster Purity** ↑ : fraction of samples that belong to the majority genre in their cluster
 
 
 
