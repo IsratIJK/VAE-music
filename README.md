@@ -503,39 +503,8 @@ sudo apt-get install ffmpeg
 # macOS
 brew install ffmpeg -->
 ```
-<!-- 
-## Usage -->
 
-<!-- ### Command-line scripts
 
-```bash
-# Easy Task (MLP-VAE, FMA + simulated Bangla)
-python scripts/run_easy.py
-
-# Medium Task (3 VAE variants × 3 datasets × 3 algorithms)
-python scripts/run_medium.py
-
-# Hard Task — full pipeline including all 7 advanced extensions
-python scripts/run_hard.py
-
-# Hard Task — skip advanced extensions for faster testing
-python scripts/run_hard.py --no-extensions
-
-# Common flags (all scripts)
---epochs 100          # Reduce training time for testing
---no-download        # Use cached data only (skip HTTP downloads)
---latent-dim 64      # Change latent dimension
-```
-
-All outputs are written to `results/easy/`, `results/medium/`, or `results/hard/` respectively. -->
-
-<!-- ### Jupyter notebooks
-
-```bash
-jupyter notebook notebooks/easy_task.ipynb
-jupyter notebook notebooks/medium_task.ipynb
-jupyter notebook notebooks/hard_task.ipynb
-``` -->
 
 ## A Quick Information about the Models
 
