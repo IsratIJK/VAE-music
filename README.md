@@ -479,30 +479,73 @@ In addition, multimodal experiments utilise:
 - Lyrics embeddings (Genius API for English; gaanesuno.com for Bangla)
 - Genre and language metadata (where available)
 
-<!-- ## Installation
+## A Quick Information about the Models
 
-```bash
-# Create and activate virtual environment
-python3 -m venv .venv            # Linux/Mac
-python -m venv .venv             # Windows
+### MLP-VAE
+- **Encoder**: Linear → BatchNorm → LeakyReLU stacked (256→128→64) → μ, log σ²
+- **Decoder**: Linear stack reversed → reconstruction
+- **Loss**: MSE reconstruction + β × KL divergence (β=1)
 
-source .venv/bin/activate        # Linux/Mac
-.venv\Scripts\activate           # Windows
+### Beta-VAE
+Deeper MLP encoder (512→256→128→64) with tighter log-variance clamping (±4) for stable high-β training. β swept over [0.5, 1, 2, 4, 8, 16]; best β selected by silhouette score.
 
-# Install dependencies
-pip install -r requirements.txt
+### CVAE (Conditional VAE)
+Genre one-hot label concatenated to encoder input and decoder input.
+Clustering uses unconditional encoding (zero condition vector).
 
-# For GPU (CUDA 11.8)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+### Conv1D-VAE
+Feature vector treated as a 1-D signal. Conv1d encoder (1→32→64→128, stride-2) with ConvTranspose1d decoder.
+
+### Conv2D-VAE
+Input: delta-stacked MFCC spectrogram (60 × 128). Conv2d encoder (1→32→64→128, stride-2, kernel 3×3) → μ/log σ² → ConvTranspose2d decoder with AdaptiveAvgPool2d output alignment.
+
+### Hybrid-Conv-VAE
+Conv2D encoder on the spectrogram branch fused with a lyric projection head (Linear → LayerNorm → LeakyReLU). Fusion layer combines both branches before producing μ/log σ². Input: flattened (7680 + 128 dims).
+
+### Hybrid-MLP-VAE
+Standard MLP-VAE operating on L2-normalised audio ‖ L2-normalised lyric embedding (65 + 128 = 193 dims).
+
+### Multi-Modal VAE
+Dedicated `audio_proj` and `lyric_proj` heads (Linear → LayerNorm → ReLU) project both modalities to `fusion_dim=256` each. Concatenated → shared MLP encoder → μ/log σ². Reconstructs audio only. Full β-VAE objective.
+
+### Autoencoder (Deterministic Baseline)
+Identical MLP topology to MLP-VAE but no reparameterisation or KL term. Trained with MSE reconstruction loss only.
+
+
+
+## Configuration
+
+All hyperparameters are centralised in `config/config.py`. Key settings:
+
+```python
+# Core VAE
+LATENT_DIM         = 32      # VAE latent space dimension
+EPOCHS             = 100     # Training epochs
+LR                 = 1e-3    # AdamW learning rate
+BETA_DEFAULT       = 1.0     # β for standard VAE
+BETA_VAE_B         = 4.0     # β for Beta-VAE
+
+# Bangla data
+N_BANGLA_PER_GENRE = 30      # Bangla tracks per genre (yt-dlp)
+
+# Advanced extensions
+BETA_VALUES        = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0]   # β-sweep
+SWEEP_EPOCHS       = 60      # Reduced epochs for β-sweep
+N_INTERP           = 12      # SLERP interpolation steps
+
 ```
 
-For Bangla audio download you also need `ffmpeg`:
-```bash
-# Ubuntu/Debian
-sudo apt-get install ffmpeg
-# macOS
-brew install ffmpeg -->
+## Reproducibility
+
+All random seeds are fixed:
+```python
+NUMPY_SEED = 42
+TORCH_SEED = 42
 ```
+
+The device is selected automatically (`DEVICE_STR = "auto"`): CUDA if available, otherwise CPU.
+
+
 
 
 
