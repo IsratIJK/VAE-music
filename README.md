@@ -380,7 +380,7 @@ Outputs: bar charts, ranked summary table, normalised radar chart.
 
 ### Running the Hard Task
 
-The Hard Task uses the **exact same setup** as the Medium Task — same dataset layout, prerequisites, small-dataset mode, and lyrics-fetching behaviour. See [Running the Medium Task](#running-the-medium-task) for all of that.
+The Hard Task uses the **exact same setup** as the Medium Task. Same dataset layout, prerequisites, small-dataset mode, and lyrics-fetching behaviour. See [Running the Medium Task](#running-the-medium-task) for all of that.
 
 The only difference is the entry point and output directory:
 
